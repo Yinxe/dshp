@@ -108,6 +108,8 @@ export const dark = fillFontTokens(
     '--dsw-alias-scrollbar-hover-l2': '#2e2e2e',
 
     '--dsw-alias-toast-bg': '#1c1c1c',
+    /* 0.2.0-rc.2 新增：toast 文字色（显式钉住，不再依赖官方的静态白） */
+    '--dsw-alias-toast-label': '#fafafa',
     '--dsw-alias-tooltip-bg': '#2e2e2e',
     '--dsw-hovercard-bg': '#242424',
 

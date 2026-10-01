@@ -17,7 +17,7 @@ import type { ReactNode } from 'react';
 export const SPEC_VERSION = 1;
 
 /** 框架版本。必须等于 package.json 的 version（check-spec-drift.mjs 比对）。 */
-export const FRAMEWORK_VERSION = '0.12.0';
+export const FRAMEWORK_VERSION = '0.13.0';
 
 /** 命名空间 = 本插件的 settings NS = cordis 行 id = 路由前缀段。 */
 export const NS = 'dshp-widget-kit';

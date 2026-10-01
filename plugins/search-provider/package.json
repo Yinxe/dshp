@@ -1,6 +1,6 @@
 {
   "name": "@dshp/search-provider",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "DeepSeek Harness (DSH) AI search provider hub: take over web_search with pluggable providers (Tavily first), with per-provider key management, search behavior, usage quota and connectivity test in one settings page. 搜索供应商集线器：以可插拔供应商（默认 Tavily）接管 web_search，各供应商的密钥管理、搜索行为、用量额度与连通性测试集中在同一设置页。",
   "license": "MIT",
   "author": "Yinxe",
@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

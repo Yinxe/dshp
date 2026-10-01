@@ -1,6 +1,6 @@
 {
   "name": "@dshp/mcp-manager",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DeepSeek Harness (DSH) MCP server manager: list / create / edit / enable / disable / delete @deepseek-ai/dsh-mcp-client instances in the profile's cordis.patch.yml from the settings page, with form & JSON dual-mode editor, comments-preserving YAML write-back and same-origin JSON routes. MCP 服务器管理器：在设置页列出、新建、编辑、启停、删除 profile 的 cordis.patch.yml 里的 @deepseek-ai/dsh-mcp-client 实例，表单/JSON 双模式编辑，回写保留注释，内置同源 JSON 路由。",
   "license": "MIT",
   "author": "Yinxe",
@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

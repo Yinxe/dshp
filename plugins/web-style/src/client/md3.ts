@@ -646,6 +646,9 @@ export function buildPhotoTokens(input: PhotoSeedInput, scheme: 'light' | 'dark'
 
     // 浮层
     '--dsw-alias-toast-bg': m.inverseSurface,
+    /* 0.2.0-rc.2 新增：toast 文字色。官方给的是静态白；壁纸主题的 toast 面是
+       inverseSurface（亮档深、暗档浅），文字必须取它的对色 inverseOnSurface。 */
+    '--dsw-alias-toast-label': m.inverseOnSurface,
     '--dsw-alias-tooltip-bg': m.inverseSurface,
     '--dsw-hovercard-bg': m.surfaceContainerLow,
 

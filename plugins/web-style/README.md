@@ -117,9 +117,11 @@ label / desc / swatch 以 `src/host/themes/*.ts` 的 `meta` 为准（token 同�
 
 另有一套虚拟主题 `photo:custom`：壁纸取色（MD3 运行时生成，不在目录内，但属于合法持久化值，Host 白名单放行）。
 
-每套 133 个 `--dsw-*` token 全量映射：背景 / 边框 / 品牌 / 按钮 / 交互态 / 文字 / 语义色 /
+每套 134 个 `--dsw-*` token 全量映射：背景 / 边框 / 品牌 / 按钮 / 交互态 / 文字 / 语义色 /
 diff 视图 / 文档预览 / Markdown / 滚动条 / 侧栏 / 气泡 / 浮层 / 阴影 / 字体栈。
-（diff 与文档预览三组 11 个键来自 0.1.7-rc.1，派生规则见 `src/host/themes/shared.ts` 头注释。）
+（diff 与文档预览三组 11 个键来自 0.1.7-rc.1；toast 文字色 1 个键来自 0.2.0-rc.2。
+官方其余新增键有意不覆盖——多数是 `var(--dsw-alias-*)` 别名，会继承本主题已覆盖的值自动生效。
+派生规则与逐条取舍见 `src/host/themes/shared.ts` 头注释。）
 
 `scripts/check-themes.mjs` 强制**全部主题覆盖同一套 token 名**（多写少写都报错），
 并校验 `official.ts` 与 DSH 实际值一致 —— 后者是覆盖层的「对侧 scheme 无操作原值」，
@@ -411,7 +413,7 @@ dsh web
 
 1. **`OFFICIAL_LIGHT/DARK` 重新生成** —— 暗色分支此前漂移 **65/88** 项（值仍停留在 DSH 0.0.x 的旧暗色调色板），
    会让「选浅色主题 → 切深色」整片回退成旧配色。现由 `scripts/sync-official.mjs` 从真实 DSH 生成
-   （101 + 101，0 漂移），`check-themes.mjs` 常驻校验。
+   （0.2.0-rc.2 基线为 118 + 118，0 漂移），`check-themes.mjs` 常驻校验。
 2. **补 `--dsw-alias-link`** —— 此前基线与主题都没有它，markdown 链接与文件提及永远是 DeepSeek 蓝。
 3. **补 `--dsw-alias-state-business-primary/tertiary`** —— 此前官方 DeepSeek 蓝会渗进每套主题。
 4. **删死 token `--dsw-alias-line-secondary`** —— 全 DSH 零引用。
@@ -422,6 +424,27 @@ dsh web
    （后加的 `harness-office` 官网蓝上取近黑，6.8:1）。
 7. **`.tg-search::placeholder` 换用 `--dsw-alias-label-tertiary`** —— 原用的 `label-quaternary` DSH 并未定义。
 8. **`fillFontTokens` 支持自定义等宽栈** —— 传字符串时 markdown 代码块与 `--dsw-font-mono` 同源。
+
+### 0.5.0：跟 DSH 0.2.0-rc.2 基线
+
+1. **官方基线重新生成** —— `official.ts` / `dsw-alias-baseline.json` 由 0.1.7-rc.1 的 **101 + 101** 项重生成到
+   0.2.0-rc.2 的 **118 + 118** 项（`node scripts/sync-official.mjs`，本机多版本共存时用
+   `DSH_THEME_BUNDLE=<...>/dsh-client-ui-theme/lib/client.js` 指准版本，否则脚本会挑到 profile 里的旧 DSH）。
+   不重生成的话，主题覆盖层的「对侧 scheme」分支会继续下发旧官方值。
+2. **补 `--dsw-alias-toast-label`（契约 133 → 134）** —— 0.2.0-rc.2 才把 toast 文字色抽成 token，
+   官方默认是静态白（`--dsw-static-neutral-bluish-00`），而官方注释假定 toast 面「两档都深」；
+   本套主题的浅色档把 `toast-bg` 定成浅面（白 / 象牙 / 米色），此前是**白底白字**。
+   现在每套主题显式取自己的 `label-primary`（壁纸主题取 M3 的 `inverseOnSurface`），
+   `check-themes.mjs` 新增「必须定义 + toast 面/字 ≥4.5:1」双重守卫。
+3. **其余 16 个新增键有意不覆盖** —— 分三类：a) 官方值本身是 `var(--dsw-alias-*)` 别名
+   （`settings-card-fill`/`-stroke`、`turn-trigger-bg(-hover)`、`tooltip-key-bg`），CSS 自定义属性惰性求值，
+   主题覆盖层一改它们自动跟随，再写一遍只会多出第二份真相；b) 语义上不该被主题改写的静态色
+   （`bg-document-selection` 固定 40% blue-500，用于保留文档原色的 PDF 选区；`onboarding-*` 属桌面首启引导）；
+   c) 扫光/工作态（`label-shimmer`、`label-deep-diving(-shimmer)`），官方是中性色叠 alpha，叠在任意主题上都成立。
+   逐条理由写在 `src/host/themes/shared.ts` 头注释。
+4. **`bg-document-preview` 亮档语义变化（本主题有意不跟）** —— 官方 0.2.0-rc.2 把亮档文档预览画布
+   由深改浅（bluish-100 + bluish-700 状态字），暗档不变。本套主题保留「预览面板恒为深色画布」，
+   属于设计取舍而非基线漂移。
 
 ## 免责声明
 

@@ -1023,6 +1023,8 @@ var light = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#c9c5b8",
     "--dsw-alias-scrollbar-hover-l2": "#dcd9ce",
     "--dsw-alias-toast-bg": "#faf9f5",
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    "--dsw-alias-toast-label": "#141413",
     "--dsw-alias-tooltip-bg": "#31302e",
     "--dsw-hovercard-bg": "#faf9f5",
     "--dsw-specific-sidebar-fill": "#f0eee6",
@@ -1151,6 +1153,8 @@ var dark = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#4d4d4d",
     "--dsw-alias-scrollbar-hover-l2": "#2e2e2e",
     "--dsw-alias-toast-bg": "#1c1c1c",
+    /* 0.2.0-rc.2 新增：toast 文字色（显式钉住，不再依赖官方的静态白） */
+    "--dsw-alias-toast-label": "#fafafa",
     "--dsw-alias-tooltip-bg": "#2e2e2e",
     "--dsw-hovercard-bg": "#242424",
     "--dsw-specific-sidebar-fill": "#171717",
@@ -1273,6 +1277,8 @@ var light2 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#d9a3b5",
     "--dsw-alias-scrollbar-hover-l2": "#efc9d6",
     "--dsw-alias-toast-bg": "#ffffff",
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    "--dsw-alias-toast-label": "#432635",
     "--dsw-alias-tooltip-bg": "#432635",
     "--dsw-hovercard-bg": "#ffffff",
     "--dsw-specific-sidebar-fill": "#fbeef2",
@@ -1400,6 +1406,8 @@ var light3 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "rgba(0, 0, 0, 0.27)",
     "--dsw-alias-scrollbar-hover-l2": "rgba(0, 0, 0, 0.08)",
     "--dsw-alias-toast-bg": "#ffffff",
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    "--dsw-alias-toast-label": "rgba(0, 0, 0, 0.8)",
     "--dsw-alias-tooltip-bg": "rgba(0, 0, 0, 0.8)",
     "--dsw-hovercard-bg": "#ffffff",
     "--dsw-specific-sidebar-fill": "#f5f5f5",
@@ -1522,6 +1530,8 @@ var light4 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#a3b89d",
     "--dsw-alias-scrollbar-hover-l2": "#dbe3d7",
     "--dsw-alias-toast-bg": "#ffffff",
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    "--dsw-alias-toast-label": "#1f2a24",
     "--dsw-alias-tooltip-bg": "#1f2a24",
     "--dsw-hovercard-bg": "#ffffff",
     "--dsw-specific-sidebar-fill": "#fbf7ef",
@@ -1645,6 +1655,8 @@ var light5 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#d3c2ae",
     "--dsw-alias-scrollbar-hover-l2": "#ece5db",
     "--dsw-alias-toast-bg": "#ffffff",
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    "--dsw-alias-toast-label": "#1a1a1f",
     "--dsw-alias-tooltip-bg": "#1a1a1f",
     "--dsw-hovercard-bg": "#ffffff",
     "--dsw-specific-sidebar-fill": "#fdf3ec",
@@ -1767,6 +1779,8 @@ var dark2 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "#54432c",
     "--dsw-alias-scrollbar-hover-l2": "#3a3020",
     "--dsw-alias-toast-bg": "#151310",
+    /* 0.2.0-rc.2 新增：toast 文字色（显式钉住，不再依赖官方的静态白） */
+    "--dsw-alias-toast-label": "#fff8ea",
     "--dsw-alias-tooltip-bg": "#322917",
     "--dsw-hovercard-bg": "#241e14",
     "--dsw-specific-sidebar-fill": "#080706",
@@ -1889,6 +1903,8 @@ var dark3 = fillFontTokens(
     "--dsw-alias-scrollbar-hover-l1": "rgba(255, 255, 255, 0.32)",
     "--dsw-alias-scrollbar-hover-l2": "rgba(255, 255, 255, 0.2)",
     "--dsw-alias-toast-bg": "#12141a",
+    /* 0.2.0-rc.2 新增：toast 文字色（显式钉住，不再依赖官方的静态白） */
+    "--dsw-alias-toast-label": "#ffffff",
     "--dsw-alias-tooltip-bg": "#232836",
     "--dsw-hovercard-bg": "#191d26",
     /* 侧栏压到 55% 不透明度：动效层的极光从侧栏底下透出来（官网 hero 的读法） */

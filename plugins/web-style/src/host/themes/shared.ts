@@ -27,6 +27,26 @@
  *       label-document-preview   tint(canvas → #ffffff, 0.82) 暗画布上的浅灰状态字
  *   - `--dsw-specific-menu` 半透明（亮 0.82 / 暗 0.8）：rc.1 起官方给它配了
  *     `backdrop-filter: blur(40px) saturate(150%)`，填实色等于废掉官方毛玻璃。
+ *   - 0.2.0-rc.2 新增的 17 个键里，**本仓只覆盖 `--dsw-alias-toast-label`**：
+ *     它是 toast 文字色。官方 0.1.7 把它硬编码为 `--dsw-static-neutral-bluish-00`（白），
+ *     且假定 toast 面两档都深；但本套主题把浅色档的 `toast-bg` 定成浅面（白 / 象牙 / 米色），
+ *     于是白底白字。0.2.0-rc.2 抽出该 token 后，各主题显式取自己的 `label-primary`，
+ *     `check-themes.mjs` 以 ≥4.5:1 把这条钉住（壁纸主题取 M3 的 `inverseOnSurface`）。
+ *     其余 16 个键**有意不定义**，理由分三类（都不需要主题参与）：
+ *       a) 官方值本身就是 `var(--dsw-alias-*)` 别名，引用的是本主题已覆盖的 token ——
+ *          `settings-card-fill` → `bg-layer-2`、`settings-card-stroke` → `border-l4`、
+ *          `turn-trigger-bg(-hover)` → `markdown-code-block` / `interactive-bg-hover(-active)`、
+ *          `tooltip-key-bg` → `tooltip-bg`。CSS 自定义属性按元素惰性求值，覆盖层一改，
+ *          这些别名自动跟着走，主题再写一遍只会引入第二份真相。
+ *       b) 官方值是**静态色**、且语义上不该被主题改写：`bg-document-selection` 固定
+ *          40% blue-500，用于「保留文档原色」的 PDF 选区，跟着主题变色等于改用户文档观感；
+ *          `onboarding-*` 属于桌面首启引导（settings-account 独立版式），主题化收益低。
+ *       c) 扫光/工作态（`label-shimmer`、`label-deep-diving(-shimmer)`）官方是「中性色叠 alpha」，
+ *          叠在任意主题文字上都不会失效 —— 保持官方值反而与官方动效同源。
+ *   - `bg-document-preview` / `label-document-preview`：0.2.0-rc.2 起官方**亮档改用浅画布**
+ *     （bluish-100 + bluish-700 状态字），只有暗档仍是深画布。本套主题有意保留
+ *     「预览面板恒为深色画布」（亮档 tint(BASE → LBL, 0.82)）——文档预览是独立观感区，
+ *     与主题亮暗不必同向；改这条属于设计变更，不在基线同步范围内。
  *
  * 原实现：dsh-custom-ui/lib/themes/shared.js（JS），本文件为等价 TS 重写，
  * 仅补类型（TokenMap / ThemeMetaMap），常量与函数逻辑逐行对齐。

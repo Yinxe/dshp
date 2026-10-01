@@ -145,7 +145,7 @@ const gen = (obj) =>
 /** 快照来源版本：漂移要能归因到具体 DSH 版本，不然「一致」可能是对着旧安装比出来的。 */
 const ver = String(baseline._meta?.dshVersion ?? '未知版本');
 
-const file = `/**
+const rawFile = `/**
  * official.ts —— 官方样式表的原始 alias / specific token 值（无操作覆盖用）。
  *
  * ⚠️ 本文件由 scripts/sync-official.mjs 生成，请勿手改。
@@ -176,6 +176,29 @@ export const OFFICIAL_DARK: TokenMap = {
 ${gen(baseline.dark)}
 };
 `;
+
+/**
+ * 让产物与仓库的 prettier 口径一致 —— CI 跑的是 `pnpm format:check`。
+ *
+ * `color-mix(in srgb, …)` 这类长值会超过 printWidth，prettier 会折行；手写生成器
+ * 不可能预判折行位置，所以这里复用仓库自己的 prettier（根 devDependency）。
+ * 解析不到 prettier 时按原样返回，并把风险说清楚 —— 宁可产物未格式化，也不要静默失败。
+ */
+async function prettify(text) {
+  try {
+    const req = createRequire(join(root, '__resolve__.js'));
+    const prettier = req('prettier');
+    // prettier v3 的 API **不会**自动读配置：必须 resolveConfig 后再显式传进去，
+    // 否则会按默认（双引号 / 80 列）输出，`pnpm format:check` 当场红。
+    const options = await prettier.resolveConfig(TARGET);
+    return await prettier.format(text, { ...options, filepath: TARGET });
+  } catch (e) {
+    console.warn(`（未找到 prettier，产物未格式化：${String(e?.message ?? e)}）`);
+    return text;
+  }
+}
+
+const file = await prettify(rawFile);
 
 const nL = Object.keys(baseline.light).length;
 const nD = Object.keys(baseline.dark).length;

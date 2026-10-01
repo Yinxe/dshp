@@ -73,6 +73,7 @@ dsh web   # 重启生效
 - **0.1.2**（2026-09-12）：设置页条目更名「Skills」；窗口重新聚焦时静默刷新列表（外部 IDE / git 改动回来即见，不闪加载态）；工具栏计数显示「已启用 M」；新建弹窗的技能名做前端 kebab-case 校验；正文编辑区换等宽字体。
 - **0.1.3**（2026-09-12）：「新建」接入官方技能生成器——已装 skill-creator 时，在**当前工作区开一个新会话**并把 `/skill-creator` 自动写入输入框（`uiWorkspace.startSession` 导航 + `conversation.input.right` 探针经 `InputActions.setDraft` 写入，全部官方 seam），发送即开始对话；**未安装时不再自动执行安装**，改为弹窗展示安装命令 `npx skills install anthropics/skills@skill-creator --global --yes` 供复制手工执行（自动安装成功率不可控），装完点「刷新」即可。手动新建表单保留在「⋯ → 手动新建技能…」。
 - **0.3.0**（2026-09-24）：适配 DSH 0.1.7（rc.1）——Host 按新契约导出条目 `Config`（schemastery 字段全部 `.volatile()`），废弃 `installSection`/`setSource`；设置页注册改走 `settings.configure({ auto: false }, ctx.fiber)`；设置改动经 `settings.update` 写入 profile 条目 `dshp-skill-manager` 的 `config:` 并由 `loader/volatile-update` 即时热更新（手工编辑条目 config 重启生效）。peer 升 `^0.1.7-rc.1`（rc.1 起装载前会校验 peer 范围）。
+- **0.4.0**（2026-10-01）：跟 DSH 0.2.0-rc.2 基线——`@deepseek-ai/dsh-client-ui-primitives` devDep 升 `0.2.0-rc.2`（cordis peer 由 4.0.2 抬到 4.0.4，仓库在 `pnpm-workspace.yaml` 用 `overrides` 对齐）。0.2.0 系列的 primitives 对本插件用到的原语是纯新增（MenuSurface / MenuGroup / ShortcutKeys / onboarding），**源码零改动**，只重打 `lib/`。
 
 ## 界面与组件策略
 

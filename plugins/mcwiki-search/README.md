@@ -218,6 +218,8 @@ README.md           本文件
 
 ## 更新日志
 
+- **v1.6.0**：跟 DSH 0.2.0-rc.2 基线——peer 与 devDep 一起升 `^0.2.0-rc.2`（rc 起装载前会校验 peer 范围，停在 `^0.1.7-rc.1` 会被 0.2.0 系的 DSH 直接跳过并告警）。0.2.0 系列的 primitives 对本插件用到的原语是纯新增，**源码零改动**，只重打 `lib/`。
+
 - **v1.5.0**：适配 DSH 0.1.7（rc.1）——Host 按新契约导出条目 `Config`（schemastery 字段全部 `.volatile()`），废弃 `installSection`/`setSource`；设置页注册改走 `settings.configure({ auto: false }, ctx.fiber)`；设置改动经 `settings.update` 写入 profile 条目 `dshp-mcwiki-search` 的 `config:` 并由 `loader/volatile-update` 即时热更新（手工编辑条目 config 重启生效）。peer 升 `^0.1.7-rc.1`（rc.1 起装载前会校验 peer 范围）。
 
 - **v1.2.0**：**移除历史 key 迁移**——不再把 `dshp-inx-mcwiki-search` 重命名为 `dshp-mcwiki-search`。配置只认 `dshp-mcwiki-search`，老用户请手工改名旧分节。

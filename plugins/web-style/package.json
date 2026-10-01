@@ -1,6 +1,6 @@
 {
   "name": "@dshp/web-style",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "DeepSeek Harness (DSH) web style suite: multi-theme gallery with one-click switching, persisted theme selection, interactive background effects orthogonal to the theme, global radius tuning, and Material You wallpaper color extraction — all rendered over the official light/dark token layer. 样式套件：多套主题画廊一键切换、主题选择持久化、与主题正交的可交互背景效果、全局圆角调节与 Material You 壁纸取色——全部叠加渲染在官方亮/暗 token 层之上。",
   "license": "MIT",
   "author": "Yinxe",
@@ -61,7 +61,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

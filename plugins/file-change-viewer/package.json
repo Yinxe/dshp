@@ -1,6 +1,6 @@
 {
   "name": "@dshp/file-change-viewer",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DeepSeek Harness (DSH) file change viewer: takes over the edit / write Tool cards in the conversation flow and renders them already expanded, so every file mutation shows its changed lines (plus the file path, hunk stat and a click-to-open link) without a single click. 文件修改查看器：接管对话流里的 edit / write 工具卡片并默认展开，让每一次文件改动直接显示变更内容、文件路径与增删行数，无需点击展开。",
   "license": "MIT",
   "author": "Yinxe",
@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

@@ -1,6 +1,6 @@
 {
   "name": "@dshp/skill-manager",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DeepSeek Harness (DSH) skill manager: browse, create, edit, enable/disable, copy/move and delete global (~/.dsh/skills, ~/.agents/skills) and workspace (<workspace>/.dsh/skills, .agents/skills) skills from the settings page, with same-origin JSON routes. 技能管理器：在设置页浏览、新建、编辑、启停、复制/移动和删除全局（~/.dsh/skills、~/.agents/skills）与工作区（<workspace>/.dsh/skills、.agents/skills）技能，内置同源 JSON 路由。",
   "license": "MIT",
   "author": "Yinxe",
@@ -60,7 +60,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

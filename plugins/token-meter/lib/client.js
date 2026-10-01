@@ -37,7 +37,7 @@ __export(client_exports, {
 module.exports = __toCommonJS(client_exports);
 
 // <define:__DSHP_TOKEN_METER_PKG__>
-var define_DSHP_TOKEN_METER_PKG_default = { name: "@dshp/token-meter", version: "0.14.0", repo: "github.com/Yinxe/deepseek-harness-plugins/tree/main/plugins/token-meter" };
+var define_DSHP_TOKEN_METER_PKG_default = { name: "@dshp/token-meter", version: "0.15.0", repo: "github.com/Yinxe/deepseek-harness-plugins/tree/main/plugins/token-meter" };
 
 // src/client/CenterView.tsx
 var import_react = require("react");

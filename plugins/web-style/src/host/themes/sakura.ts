@@ -107,6 +107,8 @@ export const light = fillFontTokens(
     '--dsw-alias-scrollbar-hover-l2': '#efc9d6',
 
     '--dsw-alias-toast-bg': '#ffffff',
+    /* 0.2.0-rc.2 新增：toast 文字色（官方此前硬编码白字，浅色 toast 面会白底白字） */
+    '--dsw-alias-toast-label': '#432635',
     '--dsw-alias-tooltip-bg': '#432635',
     '--dsw-hovercard-bg': '#ffffff',
 

@@ -8883,7 +8883,7 @@ function serializeDoc(doc, expectedCount) {
 }
 var PROBE_TIMEOUT_MS = 5e3;
 var PROTOCOL_VERSION = "2025-03-26";
-var CLIENT_VERSION = "0.3.0" ;
+var CLIENT_VERSION = "0.4.0" ;
 async function probeStreamableHttp(input) {
   const started = Date.now();
   const base = {

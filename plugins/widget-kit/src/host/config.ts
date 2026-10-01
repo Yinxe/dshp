@@ -16,7 +16,7 @@ import type { FrameworkConfig, FrameworkConfigPatch } from './types.js';
 export const NS: string = settingsNamespace('dshp-widget-kit');
 
 /** 框架版本。必须等于 package.json 的 version（scripts/check-spec-drift.mjs 比对）。 */
-export const FRAMEWORK_VERSION = '0.12.0';
+export const FRAMEWORK_VERSION = '0.13.0';
 
 /** 契约版本（与 client 侧 spec.ts 的 SPEC_VERSION 同步）。 */
 export const SPEC_VERSION = 1;

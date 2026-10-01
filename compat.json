@@ -8,9 +8,14 @@
       "note": "旧 settings 契约（installSection / settings.yaml 命名空间）。0.1.6+ 用户请留在 main。"
     },
     {
-      "dsh": "0.1.7-rc.1 及更新",
+      "dsh": "0.1.7 系（0.1.7-rc.1 ~ 0.2.0-rc.1）",
       "tag": "v0.1.7-rc.1",
-      "note": "0.1.7 settings 契约：条目导出 Config + volatile，配置落 profile 条目 config:，settings.configure({ auto: false })。web-style 0.4.0 起 token 契约对齐 rc.1（133 键：新增 diff 视图 / 文档预览 / 空闲态 11 个，menu 转半透明以吃到官方 blur(40px)）。"
+      "note": "0.1.7 settings 契约：条目导出 Config + volatile，配置落 profile 条目 config:，settings.configure({ auto: false })。web-style 0.4.0 起 token 契约对齐 rc.1（133 键：新增 diff 视图 / 文档预览 / 空闲态 11 个，menu 转半透明以吃到官方 blur(40px)）。0.2.0-rc.2 用户请留在 main。"
+    },
+    {
+      "dsh": "0.2.0-rc.2 及更新（当前 main）",
+      "tag": "main",
+      "note": "peer 统一 ^0.2.0-rc.2（ui-primitives 0.2.0-rc.2 起 cordis peer 为 ~4.0.4，本仓 pnpm-workspace.yaml 显式 overrides 对齐）。官方 alias/specific 键集 101 → 118：web-style 0.5.0 重新生成 official 基线与快照（118 + 118），主题补 --dsw-alias-toast-label（官方此前硬编码白字，浅色 toast 面会白底白字），其余新增键多为 var(--dsw-alias-*) 别名，继承本主题覆盖后自动生效。"
     }
   ]
 }

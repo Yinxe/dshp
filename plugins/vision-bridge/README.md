@@ -267,6 +267,8 @@ dsh web
 
 ## 更新日志
 
+- **v1.8.0**：跟 DSH 0.2.0-rc.2 基线——`@deepseek-ai/dsh-client-ui-primitives` devDep 升 `0.2.0-rc.2`（cordis peer 4.0.2 → 4.0.4，仓库 `pnpm-workspace.yaml` 用 `overrides` 对齐）。0.2.0 系列的 primitives 对本插件用到的原语是纯新增，**源码零改动**，只重打 `lib/`。
+
 - **v1.7.0**：适配 DSH 0.1.7（rc.1）——Host 按新契约导出条目 `Config`（schemastery 字段全部 `.volatile()`），废弃 `installSection`/`setSource`；设置页注册改走 `settings.configure({ auto: false }, ctx.fiber)`；设置改动经 `settings.update` 写入 profile 条目 `dshp-vision-bridge` 的 `config:` 并由 `loader/volatile-update` 即时热更新（手工编辑条目 config 重启生效）。peer 升 `^0.1.7-rc.1`（rc.1 起装载前会校验 peer 范围）。
 
 - **v1.5.0**：**移除全部历史配置迁移**——不再把 `vision-bridge` / `dshp-inx-vision-bridge` 顶层 key 重命名为 `dshp-vision-bridge`，也不再读取/备份旧 `storages/dshp-inx-vision-bridge.json`。配置只认 `dshp-vision-bridge`：老用户如需保留旧值，请手工把旧分节改名或把内容并到新分节（旧 key 里 `{}` 之外的字段不会被自动搬运）。

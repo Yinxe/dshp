@@ -1,6 +1,6 @@
 {
   "name": "@dshp/token-meter",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "DeepSeek Harness (DSH) TokenMeter: unified quota + usage statistics — multi-vendor rolling/payg quota with sidebar card and provider ops, plus session-log token aggregation with trends, heatmap and per-model breakdown. 额度与用量统计统一视图：多供应商 rolling/payg 额度（侧边栏卡片 + 供应商运维操作），外加会话日志 token 聚合（趋势、热力图、按模型拆分）。",
   "license": "MIT",
   "author": "Yinxe",
@@ -61,11 +61,11 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-client-ui-primitives": "^0.1.7-rc.1"
+    "@deepseek-ai/dsh-client-ui-primitives": "^0.2.0-rc.2"
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@dshp/widget-kit": "workspace:*",
     "@types/react": "~18.3.1",

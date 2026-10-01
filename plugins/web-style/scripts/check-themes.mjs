@@ -140,6 +140,29 @@ for (const t of THEME_CATALOG) {
 }
 console.log(`on-primary 墨色：${contrastChecked} 项对比度校验通过`);
 
+// ── 1b-4. toast 文字色必须与 toast 面成对 ───────────────────────────────
+// 0.2.0-rc.2 才把 toast 文字色抽成 `--dsw-alias-toast-label`，官方默认值是静态白
+// （`--dsw-static-neutral-bluish-00`），并且在注释里假定 toast 面「两档都是深面」。
+// 本套主题的浅色档把 toast-bg 定成浅面（白 / 象牙 / 米色），只覆盖 toast-bg 不覆盖
+// toast-label 就是白底白字 —— 这条同时钉住「必须定义」与「必须可读」。
+let toastChecked = 0;
+for (const t of THEME_CATALOG) {
+  const bgRaw = String(t.tokens?.['--dsw-alias-toast-bg'] ?? '');
+  const labelRaw = t.tokens?.['--dsw-alias-toast-label'];
+  if (typeof labelRaw !== 'string' || labelRaw === '') {
+    bad(`${t.id} 缺 --dsw-alias-toast-label（官方默认白字，浅色 toast 面会白底白字）`);
+    continue;
+  }
+  const bg = rgb6(bgRaw);
+  const fg = rgb6(labelRaw);
+  if (bg && fg) {
+    toastChecked++;
+    const r = ratio(bg, fg);
+    if (r < 4.5) bad(`${t.id} toast 不可读：${bgRaw} 底 + ${labelRaw} 字 = ${r.toFixed(2)}:1（应 ≥4.5:1）`);
+  }
+}
+console.log(`toast 文字色：${toastChecked} 项对比度校验通过（其余为非不透明 hex，仅校验存在性）`);
+
 // ── 1c. 官方基线必须等于 DSH 当前值 ────────────────────────────────────
 // OFFICIAL_LIGHT/DARK 是对侧 scheme 的「无操作原值」；一旦漂移，选浅色主题再切
 // 深色就会把 DSH 的旧配色涂回去（历史上漂移过 65/88 项）。
