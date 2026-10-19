@@ -1,6 +1,6 @@
 # provider 型插件：两套模板与失败提示
 
-> 本文承接旧 AGENT.md §10.3–10.4（多供应商分层渲染 / 失败提示结构化）的完整细节，标杆 `plugins/token-meter`。规则版总纲见[仓库根 AGENT.md](../AGENT.md)。
+> 本文承接旧 AGENT.md §10.3–10.4（多供应商分层渲染 / 失败提示结构化）的完整细节，标杆 `archive/token-meter`（已归档，仅作历史参考；同类的 `archive/search-provider` 亦然）。规则版总纲见[仓库根 AGENT.md](../AGENT.md)。
 
 ## 什么时候读这篇
 
@@ -160,7 +160,7 @@ search-provider 是同一思想的搜索版：`host/providers/<id>.ts` 实现 `S
 
 ## 失败提示必须结构化、可操作
 
-拉取失败不能只把原始异常丢给用户。标杆：token-meter 的 `host/errors.ts` + `client/ErrorBox.tsx`。要点：
+拉取失败不能只把原始异常丢给用户。标杆：归档的 token-meter `host/errors.ts` + `client/ErrorBox.tsx`。要点：
 
 - **适配器抛 `ProviderError(kind, msg, opts)`** 显式声明原因，`kind` 取
   `auth | session | plan | balance | rate | network | parse | config | server | unknown`；

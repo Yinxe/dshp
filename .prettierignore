@@ -2,6 +2,8 @@ node_modules
 pnpm-lock.yaml
 **/lib/
 **/dist/
+# 归档插件冻结，不再参与全仓格式化
+archive/
 *.map
 coverage
 # vendored 的第三方 JSON Schema（保持与上游逐字节一致，便于日后整文件刷新）

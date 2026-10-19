@@ -1,0 +1,69 @@
+{
+  "name": "@dshp/file-change-viewer",
+  "version": "0.4.0",
+  "description": "DeepSeek Harness (DSH) file change viewer: takes over the edit / write Tool cards in the conversation flow and renders them already expanded, so every file mutation shows its changed lines (plus the file path, hunk stat and a click-to-open link) without a single click. 文件修改查看器：接管对话流里的 edit / write 工具卡片并默认展开，让每一次文件改动直接显示变更内容、文件路径与增删行数，无需点击展开。",
+  "license": "MIT",
+  "author": "Yinxe",
+  "type": "module",
+  "main": "./lib/host.js",
+  "exports": {
+    ".": "./lib/host.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "tool-view",
+    "diff",
+    "file-change"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf lib *.tsbuildinfo",
+    "test": "node --check lib/host.js && node --check lib/client.js && node scripts/check-host.mjs && node scripts/check-patch.mjs && node scripts/check-client.mjs && echo \"syntax ok\"",
+    "prepublishOnly": "pnpm typecheck && pnpm build",
+    "lint": "oxlint --deny-warnings --config ../../.oxlintrc.json src tsup.config.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yinxe/deepseek-harness-plugins.git",
+    "directory": "archive/file-change-viewer"
+  },
+  "bugs": {
+    "url": "https://github.com/Yinxe/deepseek-harness-plugins/issues"
+  },
+  "homepage": "https://github.com/Yinxe/deepseek-harness-plugins/tree/main/archive/file-change-viewer#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cosmokit": "~1.8.5",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@types/react": "~18.3.1",
+    "react": "^18.3.1",
+    "tsup": "^8.5.1"
+  }
+}

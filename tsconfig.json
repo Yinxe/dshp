@@ -5,14 +5,8 @@
   },
   "files": [],
   "references": [
-    { "path": "./plugins/vision-bridge" },
-    { "path": "./plugins/mcwiki-search" },
-    { "path": "./plugins/token-meter" },
-    { "path": "./plugins/search-provider" },
-    { "path": "./plugins/web-style" },
-    { "path": "./plugins/skill-manager" },
-    { "path": "./plugins/mcp-manager" },
-    { "path": "./plugins/file-change-viewer" },
-    { "path": "./plugins/widget-kit" }
+    {
+      "path": "./plugins/vision-bridge"
+    }
   ]
 }

@@ -1,0 +1,69 @@
+{
+  "name": "@dshp/skill-manager",
+  "version": "0.4.0",
+  "description": "DeepSeek Harness (DSH) skill manager: browse, create, edit, enable/disable, copy/move and delete global (~/.dsh/skills, ~/.agents/skills) and workspace (<workspace>/.dsh/skills, .agents/skills) skills from the settings page, with same-origin JSON routes. 技能管理器：在设置页浏览、新建、编辑、启停、复制/移动和删除全局（~/.dsh/skills、~/.agents/skills）与工作区（<workspace>/.dsh/skills、.agents/skills）技能，内置同源 JSON 路由。",
+  "license": "MIT",
+  "author": "Yinxe",
+  "type": "module",
+  "main": "./lib/host.js",
+  "exports": {
+    ".": "./lib/host.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "cordis.patch.yml",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "cordis",
+    "plugin",
+    "skill",
+    "skills",
+    "manager"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf lib *.tsbuildinfo",
+    "test": "node --check lib/host.js && node --check lib/client.js && node ../../shared/scripts/check-css-modules.mjs src/client && echo \"syntax ok\"",
+    "prepublishOnly": "pnpm typecheck && pnpm build",
+    "lint": "oxlint --deny-warnings --config ../../.oxlintrc.json src tsup.config.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Yinxe/deepseek-harness-plugins.git",
+    "directory": "archive/skill-manager"
+  },
+  "bugs": {
+    "url": "https://github.com/Yinxe/deepseek-harness-plugins/issues"
+  },
+  "homepage": "https://github.com/Yinxe/deepseek-harness-plugins/tree/main/archive/skill-manager#readme",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "devDependencies": {
+    "@deepseek-ai/cosmokit": "~1.8.5",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+    "@deepseek-ai/schemastery": "^3.18.4",
+    "@types/react": "~18.3.1",
+    "react": "^18.3.1",
+    "tsup": "^8.5.1"
+  }
+}

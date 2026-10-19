@@ -26,6 +26,8 @@ pnpm test          # pnpm -r test（至少 node --check 双 bundle）
 
 ## 各插件自检脚本（`pnpm test` 的追加层）
 
+> 下表是**归档插件**的历史自检脚本（源码保留在 `archive/<name>/scripts/`），已不在 `pnpm test` / CI 中运行；维护中的 `vision-bridge` 只跑根 `test` 里的语法 + CSS Module 检查。
+
 | 插件               | 脚本                         | 盯什么                                                                                  |
 | ------------------ | ---------------------------- | --------------------------------------------------------------------------------------- |
 | file-change-viewer | `check-host.mjs`（158 项）   | NS 契约、补丁消毒、/ext 路由、patch 工具注册契约与动态开关、全有或全无、locate 只读一次 |

@@ -108,12 +108,13 @@ jobs:
       - run: pnpm build
       - run: pnpm test
 
-      - name: Pack all plugins
+      - name: Pack maintained plugins
         if: steps.meta.outputs.pack == 'true'
         env:
           SUFFIX: ${{ steps.meta.outputs.suffix }}
         run: |
           mkdir -p dist
+          # 只打包 plugins/ 下的维护中插件；archive/ 是冻结存档，不参与发布
           for dir in plugins/*/; do
             pkg_name=$(node -p "require('./${dir}package.json').name")
             pkg_ver=$(node -p "require('./${dir}package.json').version")

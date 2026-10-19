@@ -4,7 +4,7 @@
 
 ## 版本与兼容
 
-- main 永远跟最新 DSH。`compat.json` 为空是正常态（暂无历史包袱）。
+- main 只维护 `plugins/vision-bridge`，它永远跟最新 DSH；`archive/` 下的插件冻结，不参与版本与发布。`compat.json` 为空是正常态（暂无历史包袱）。
 - DSH 发新版且有 breaking：当前 main 打 annotated tag `v<根版本>`（message 写 DSH 版本）→ `compat.json` 追加一行 → 再在 main 上适配。平时不打 tag。老 DSH 用户按 `compat.json` `git checkout <tag>`。
 - tag 只在「DSH 上游发新版 breaking」时回头打（`compat.json` 的 `compat` 数组记 DSH 版本 → 推荐 tag）。
 
@@ -20,7 +20,7 @@
 | 仅门禁       | 推送其他分支 / PR         | 不打包、不发布（`pack=false`，产物不上传）                                          |
 
 - **只有 `main` 与 `v*` tag 能产出发布物**：其他分支推送与 PR 只跑门禁；手动触发是唯一的人工发版口，在别的 ref 上触发同样只跑门禁（并打一条 `::notice::`）。历史上曾有「推送任意非 `dev`/`feature/*` 分支 → 分支同名预发布」的通道，已拿掉——它会让 Release 列表被一次性分支刷屏，并立刻撞上下面的数量约束。
-- 打包用 `pnpm pack`（遵循各包 `files`，根 LICENSE 自动附带）；notes 由 `scripts/gen-release-notes.cjs` 生成（包名/版本/双语描述/下载与安装命令）。
+- 打包只遍历 `plugins/*`（当前仅 `vision-bridge`）；`archive/` 不打包、不发版。打包用 `pnpm pack`（遵循各包 `files`，根 LICENSE 自动附带）；notes 由 `scripts/gen-release-notes.cjs` 生成（包名/版本/双语描述/下载与安装命令）。
 
 ## 滚动约定
 

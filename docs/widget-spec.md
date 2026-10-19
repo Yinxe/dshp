@@ -1,7 +1,9 @@
 # 小组件规范（`@dshp/widget-kit`）
 
+> **已归档（2026-10-20），不再维护。** 宿主 `@dshp/widget-kit` 已冻结到 `archive/widget-kit`，本文仅作历史契约参考；新插件不再接入小组件。
+>
 > 面向**组件提供方**（写业务插件的你）的完整契约。实现者视角的局部规则见
-> [`plugins/widget-kit/AGENT.md`](../plugins/widget-kit/AGENT.md)；仓库级红线见[根 AGENT.md](../AGENT.md)。
+> [`archive/widget-kit/AGENT.md`](../archive/widget-kit/AGENT.md)；仓库级红线见[根 AGENT.md](../AGENT.md)。
 >
 > 一句话：**框架管「窗口」，提供方管「内容」**。托盘图标、卡片几何、z 序、加载/错误/陈旧态、
 > 轮询节流、错误隔离、持久化、键盘与焦点由框架负责；**内容长什么样、随尺寸怎么变，完全由你决定**。
@@ -45,7 +47,7 @@
 
 ```bash
 # 1. 装框架（一次）：组件提供方只在 devDependencies 里加类型，运行时零 import
-dsh plugin --profile web add ./plugins/widget-kit
+dsh plugin --profile web add ./archive/widget-kit
 ```
 
 ```jsonc
@@ -202,7 +204,7 @@ function useOpen(widgets: WidgetsService, id: string): boolean {
 
 **`trayIcon: false` 的卡片必须提前注册。** 框架渲染一张卡片的前提是描述符在册，而这类卡片没有图标可点：
 刷新后布局里「还开着」的卡片，只能靠你在启动时（以及数据变化时）主动注册回来。
-本仓的 `@dshp/token-meter` 就是第一个按这套契约接入的实例：它的统计图表
+归档的 `@dshp/token-meter` 是第一个按这套契约接入的实例：它的统计图表
 （指标卡 / 趋势 / 热力 / 模型分布 / 今日消耗，共 5 张）全是 `trayIcon: false` 的自由卡片，
 启动时对齐注册表；它们的开关在插件自己的「用量统计」工具条上 —— 这个插件**一个活动栏图标都不占**
 （额度入口是侧边栏底部按钮，不走小组件）。
@@ -481,7 +483,7 @@ function useOpen(widgets: WidgetsService, id: string): boolean {
   设了 `persistent: true` 的面板**不参与点外部关闭**（常驻，见 §3.1）。
 - 锚点元素失效（会话切换/图标卸载）→ 关闭；`card` 则回退到视口右上角固定位（不消失）。
 
-**参考实现**（可直接对照源码，都在框架自己的 `plugins/widget-kit/src/client/widgets/` 下）：
+**参考实现**（可直接对照源码，都在框架自己的 `archive/widget-kit/src/client/widgets/` 下）：
 `quick-settings.tsx` = 点击展开 + 小面板放快捷设置（写偏好）；`status.tsx` = 悬停展开 + `header: false` +
 `padding: 0`（整块面板归提供方）；`clock.tsx` / `diagnostics.tsx` = 卡片侧的尺寸呈现与注册表诊断。
 
@@ -728,5 +730,5 @@ load: async (ctx) => (await fetch('/ext/my-plugin/data', { signal: ctx.signal })
   <https://8thlight.com/insights/tutorial-add-a-menu-bar-extra-to-a-macos-app>
 - **Home Assistant Lovelace 自定义卡片**：卡壳与内容分离、单卡错误不互相拖垮。
   <https://github.com/thomasloven/lovelace-hui-element>
-- 本仓既有教训：`plugins/token-meter/src/client/widgets.tsx` 的自由浮窗（固定尺寸假设、
+- 本仓既有教训：`archive/token-meter/src/client/widgets.tsx` 的自由浮窗（固定尺寸假设、
   无 pointercancel、硬编码 z-index 基线、一次移动全量重渲染、组件卸载靠手工前缀清理）—— 本规范逐条对应修复。

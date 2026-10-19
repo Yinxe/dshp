@@ -1,10 +1,11 @@
 # AGENT.md — dsh 插件 monorepo 开发规范（规则版）
 
 > 仓库：`deepseek-harness-plugins`（pnpm workspaces + TypeScript ESM）。
+> 2026-10-20 起只维护 `plugins/vision-bridge`；`archive/` 下的插件已冻结，不参与构建 / 测试 / 发布，不得在其中新增功能或适配新版 DSH。
 > 本文只留**必须背下来的规则**与打回清单；每条规则的「为什么、怎么抄、逐字段表格」下沉在 [docs/](docs/) 各主题文档里，按需再读。
-> 有疑问时的阅读顺序：本文 → `docs/` 对应主题 → 标杆源码 `plugins/vision-bridge`（唯一标杆实现；provider 型看 `plugins/token-meter`，接管工具行看 `plugins/file-change-viewer`）。
-> 各插件自己的局部规则在 `plugins/<name>/AGENT.md`（NS、槽位占位、路由面、自检脚本、特殊边界）。
-> **要提供小组件（托盘图标 / 卡片）的插件，先读 [`docs/widget-spec.md`](docs/widget-spec.md)** —— 那份是组件提供方的契约。
+> 有疑问时的阅读顺序：本文 → `docs/` 对应主题 → 标杆源码 `plugins/vision-bridge`（唯一维护中的标杆实现；provider 型与接管工具行的历史参考分别在 `archive/token-meter`、`archive/file-change-viewer`，只读、不再维护）。
+> 各插件自己的局部规则在 `plugins/<name>/AGENT.md`（维护中）或 `archive/<name>/AGENT.md`（归档，NS、槽位占位、路由面、自检脚本、特殊边界）。
+> **小组件契约见 [`docs/widget-spec.md`](docs/widget-spec.md)**，但其宿主 `@dshp/widget-kit` 已归档冻结，新插件不再接入。
 
 ## 十条红线（违反即打回）
 
@@ -50,7 +51,8 @@
 11. 子包自带 LICENSE / `files` 含 LICENSE（全仓 MIT 只在根保留一份）。
 12. 稳态读写旧配置键名、硬编码键名字符串、为历史旧键写兼容/迁移代码（读写一律 `NS` 常量）。
 13. 代码注释引用本规范时用旧 §编号（应链接 `docs/<主题>.md`，编号会漂移）。
-14. 写小组件不按 [docs/widget-spec.md](docs/widget-spec.md)：运行时 `import` `@dshp/widget-kit`（只允许 `import type` + `ctx.widgets` 服务）、`render` 里 `setSize`、自己监听 `window.resize`、写死色值、portal 到 `document.body`。
+14. （历史规则；`widget-kit` 已归档，新插件不再接入小组件）写小组件不按 [docs/widget-spec.md](docs/widget-spec.md)：运行时 `import` `@dshp/widget-kit`（只允许 `import type` + `ctx.widgets` 服务）、`render` 里 `setSize`、自己监听 `window.resize`、写死色值、portal 到 `document.body`。
+15. 在 `archive/` 里改代码、升版本或接新版 DSH（归档冻结；要恢复维护先把目录移回 `plugins/` 并重新纳入 workspace / CI）。
 
 ---
 

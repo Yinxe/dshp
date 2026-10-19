@@ -24,11 +24,11 @@ plugins/<name>/
 
 可选目录（按需，均为约定）：
 
-| 目录          | 用途                                                      | 现有使用者                                                   |
-| ------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| `src/shared/` | Host 与 Client 两份产物都要内联的**纯函数**（如补丁解析） | file-change-viewer                                           |
-| `scripts/`    | 无头自检脚本，挂进 `pnpm test`                            | file-change-viewer / mcp-manager / token-meter / web-style   |
-| `images/`     | README 截图（配合 `screenshots.json` 清单）               | mcwiki-search / token-meter / web-style / file-change-viewer |
+| 目录          | 用途                                                      | 现有使用者                                                               |
+| ------------- | --------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/shared/` | Host 与 Client 两份产物都要内联的**纯函数**（如补丁解析） | file-change-viewer（已归档）                                             |
+| `scripts/`    | 无头自检脚本，挂进 `pnpm test`                            | file-change-viewer / mcp-manager / token-meter / web-style（均已归档）   |
+| `images/`     | README 截图（配合 `screenshots.json` 清单）               | mcwiki-search / token-meter / web-style / file-change-viewer（均已归档） |
 
 仓库根另有 `shared/`（**不是**插件）：构建预设 `tsup.preset.ts`、CSS Module 的宽松类型声明
 `types/css-modules.d.ts`、各插件 `pnpm test` 共用的静态检查 `scripts/check-css-modules.mjs`。
@@ -79,4 +79,4 @@ client 侧的起步三件（照 vision-bridge 抄）：`src/client/index.tsx`（
 
 - 唯一标杆实现：`plugins/vision-bridge`（`@dshp/vision-bridge`）。**新插件有疑问时先读它，再读规范。**
 - 阅读顺序：根 `AGENT.md` → 根 `README.md` → `plugins/vision-bridge/README.md` → `plugins/vision-bridge/src/host/*.ts` → `src/client/*`（组件是 `.tsx`）→ `tsup.config.ts`。
-- provider 型插件（多供应商分层）的第二标杆：`plugins/token-meter`；接管工具行渲染的标杆：`plugins/file-change-viewer`。
+- provider 型插件（多供应商分层）的第二标杆：`archive/token-meter`（已归档）；接管工具行渲染的标杆：`archive/file-change-viewer`（已归档）。两者只读，不再适配新版 DSH。

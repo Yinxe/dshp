@@ -83,4 +83,4 @@ ctx.tools.register({
 
 ## 斜杠命令（commands，可选服务）
 
-mcwiki-search 的 `/mcwiki` 是范式：`ctx.get('commands')` 判空跳过；`ctx.commands.register` + `definitionId` + `input.hint`；handler 返回 `CommandResult`（可 Promise）。设计约束：单命令单动作（不做子命令——输入框不为子命令补全，用户发现不了）；输出 Markdown 时可配合 `conversation.chat.commandview` 槽位（按命令名 keyed）做自定义卡片。
+已归档的 mcwiki-search 的 `/mcwiki` 是范式：`ctx.get('commands')` 判空跳过；`ctx.commands.register` + `definitionId` + `input.hint`；handler 返回 `CommandResult`（可 Promise）。设计约束：单命令单动作（不做子命令——输入框不为子命令补全，用户发现不了）；输出 Markdown 时可配合 `conversation.chat.commandview` 槽位（按命令名 keyed）做自定义卡片。

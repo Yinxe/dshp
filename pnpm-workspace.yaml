@@ -1,5 +1,6 @@
 packages:
   - 'plugins/*'
+  # archive/ 是冻结存档，故意不加入 workspace（不构建、不测试、不发布）
 allowBuilds:
   esbuild: true
 storeDir: /tmp/pnpm-store

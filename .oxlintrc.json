@@ -4,7 +4,7 @@
     "correctness": "error",
     "suspicious": "warn"
   },
-  "ignorePatterns": ["**/lib/", "**/dist/", "pnpm-lock.yaml"],
+  "ignorePatterns": ["**/lib/", "**/dist/", "archive/", "pnpm-lock.yaml"],
   "rules": {
     "unicorn/consistent-function-scoping": "off",
     "eslint/no-underscore-dangle": "off"

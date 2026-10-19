@@ -2,45 +2,32 @@
 
 DeepSeek Harness（DSH）插件 Monorepo（pnpm workspaces + TypeScript ESM）。
 
-> **运行时零依赖 · 构建产物已提交**：所有插件 `dependencies` 恒为 `{}`，`lib/host.js` / `lib/client.js` 随仓库提交 —— clone 下来即可直接安装，无需先 build。
+> **当前只维护 `@dshp/vision-bridge`。** 2026-10-20 起其余插件已归档到 [`archive/`](archive/README.md)，冻结在归档时的版本，不再适配新版 DSH，也不参与构建、测试与发布。
+
+> **运行时零依赖 · 构建产物已提交**：插件 `dependencies` 恒为 `{}`，`lib/host.js` / `lib/client.js` 随仓库提交 —— clone 下来即可直接安装，无需先 build。
 
 ## 插件一览
 
-| 插件                                                                 | 一句话                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 文档                                           |
-| -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| **[@dshp/token-meter](plugins/token-meter/README.md)**               | Token 额度 + 用量统计 + 在线时长：额度唯一入口是左侧边栏底部按钮（**按钮内容由各供应商模板自由渲染**——环 / 余额 / 多条窗口迷你条 + 供应商图标，**显示什么由该供应商自己的小控件决定**（画在它的详情卡片底部）；点开在按钮上方弹出详情 + 供应商切换；多供应商 opencode / DeepSeek / Command Code / 手动）+ 本机会话日志聚合（趋势 / 热力图 / 模型分布 / 在线时长与每日排行，增量重算、口径分级）；统计图表可弹出为独立小组件（装了 `@dshp/widget-kit` 时是框架卡片，入口在中心区「用量统计」工具条），本插件不占任何活动栏图标                   | [README](plugins/token-meter/README.md)        |
-| **[@dshp/vision-bridge](plugins/vision-bridge/README.md)**           | 视觉桥接：让纯文本模型也能“看图”（`vision_describe` 工具 + 主/备模型自动降级）                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | [README](plugins/vision-bridge/README.md)      |
-| **[@dshp/mcwiki-search](plugins/mcwiki-search/README.md)**           | Minecraft Wiki 查询工具（搜索 / 引言 / 全文，含模板清理的 AI 可读转换）                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | [README](plugins/mcwiki-search/README.md)      |
-| **[@dshp/search-provider](plugins/search-provider/README.md)**       | `web_search` 供应商中枢：Tavily 等可插拔接入，动态选型                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | [README](plugins/search-provider/README.md)    |
-| **[@dshp/web-style](plugins/web-style/README.md)**                   | Web 外观定制：8 套主题画廊一键切换并持久化 + 3 个可交互背景效果（官网同款点阵字标 / 极光辉光 / 程序化流场，与主题正交）+ 壁纸取色（Material You）+ 全局圆角                                                                                                                                                                                                                                                                                                                                                                                     | [README](plugins/web-style/README.md)          |
-| **[@dshp/skill-manager](plugins/skill-manager/README.md)**           | 技能管理：设置页统一管理全局（`~/.dsh/skills`、`~/.agents/skills`）与工作区技能——新建/编辑/启停/复制移动/删除                                                                                                                                                                                                                                                                                                                                                                                                                                   | [README](plugins/skill-manager/README.md)      |
-| **[@dshp/mcp-manager](plugins/mcp-manager/README.md)**               | MCP 服务器管理：设置页管理 cordis.patch.yml 里的官方 dsh-mcp-client 实例——新建/编辑/启停/删除/探活，表单+JSON 双模式，回写保注释                                                                                                                                                                                                                                                                                                                                                                                                                | [README](plugins/mcp-manager/README.md)        |
-| **[@dshp/file-change-viewer](plugins/file-change-viewer/README.md)** | 文件修改查看器 + **`patch` 工具**：接管对话流里的 edit / write / patch 行（外壳沿用官方原生行，默认折叠、可在设置里改成默认展开），展开后每个文件块是一张带**语法高亮的统一 diff** 卡片（整行红绿、删除行不占行号、统计只算真正变化的行）；`patch` 工具让「多处零散 / 跨文件」的批量修改一次调用完成且**全有或全无**；全局偏好在设置里自己的一节「File Change View」中配置（展示方式是两张直接画出效果的预览卡），落 profile 条目 config；会话页头另有两个**只作用于当前会话**的快捷开关（一键展开 / 收起全部文件改动、切换差异视图），不写配置 | [README](plugins/file-change-viewer/README.md) |
-| **[@dshp/widget-kit](plugins/widget-kit/README.md)**                 | 小组件规范与宿主（**不含业务**）：会话顶部托盘（图标/徽标/双向拖拽换序/溢出菜单/启用禁用）+ 可拖拽/缩放/最小化折叠/**锁定位置**/关闭的卡片（拖动自由跟手、允许互相覆盖，靠近边缘/邻卡时给出虚线**吸附预览框**、松手才吸附）与可点击或悬停展开（可声明**常驻**）的小面板，统一负责加载/错误/陈旧态、轮询节流、错误隔离、z 序、几何夹紧、本机布局持久化（刷新即恢复）与键盘焦点；**内容如何随尺寸变化由组件提供方决定**（`sizeClass` / 容器查询 / 实测 `size` 三选一）                                                                            | [README](plugins/widget-kit/README.md)         |
+**维护中：**
 
-## 截图预览
+| 插件                                                       | 一句话                                                                         | 文档                                      |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
+| **[@dshp/vision-bridge](plugins/vision-bridge/README.md)** | 视觉桥接：让纯文本模型也能“看图”（`vision_describe` 工具 + 主/备模型自动降级） | [README](plugins/vision-bridge/README.md) |
 
-### `@dshp/token-meter` — 额度 + 用量 + 在线（界面名：**Token 总览**）
+**已归档（冻结，不再维护）：**
 
-**额度**只有左侧边栏底部一枚按钮（`sidebar.footer.action`），**按钮内容由各供应商模板自由渲染**（不限于环）：供应商图标 + 环 / 余额大数字 / `5时·周·月` 三条迷你条都可以，宽栏是「图标 + 主图形 + 名字 + 数值」、56px 窄栏只剩主图形；装得进一枚按钮就行。点开在按钮**上方**弹出浮层 —— 当前供应商的详情（详情模板产出 + 数据新鲜度）+ **它自己画在详情卡片底部的显示控件**（如 Goat 的「数值位显示余额」开关 + `5h / 1w / 1m` 单选，默认月额度；偏好存**浏览器本地**的 `tm-quota-prefs`、不进持久化配置）+ 「切换供应商」列表（每行左侧的图形同样来自该 provider 的按钮模板，点击即切换，一次只激活一个）。它不占活动栏图标，也不是中心区的一块面板。
+| 插件                                                             | 版本   | 一句话                                                              | 归档位置                                                    |
+| ---------------------------------------------------------------- | ------ | ------------------------------------------------------------------- | ----------------------------------------------------------- |
+| [@dshp/token-meter](archive/token-meter/README.md)               | 0.15.0 | Token 额度 + 用量统计 + 在线时长（多供应商额度 + 会话日志聚合）     | [`archive/token-meter`](archive/token-meter/)               |
+| [@dshp/file-change-viewer](archive/file-change-viewer/README.md) | 0.4.0  | edit / write 行的高亮差异视图 + `patch` 工具                        | [`archive/file-change-viewer`](archive/file-change-viewer/) |
+| [@dshp/mcwiki-search](archive/mcwiki-search/README.md)           | 1.6.0  | Minecraft Wiki 查询（搜索 / 引言 / 全文，清洗成 AI 可读文本）       | [`archive/mcwiki-search`](archive/mcwiki-search/)           |
+| [@dshp/search-provider](archive/search-provider/README.md)       | 0.5.0  | `web_search` 供应商中枢（Tavily 等可插拔接入）                      | [`archive/search-provider`](archive/search-provider/)       |
+| [@dshp/web-style](archive/web-style/README.md)                   | 0.5.0  | Web 外观定制（8 套主题 + 背景效果 + 壁纸取色 + 全局圆角）           | [`archive/web-style`](archive/web-style/)                   |
+| [@dshp/skill-manager](archive/skill-manager/README.md)           | 0.4.0  | 技能管理（全局 + 工作区技能的新建 / 编辑 / 启停 / 复制移动 / 删除） | [`archive/skill-manager`](archive/skill-manager/)           |
+| [@dshp/mcp-manager](archive/mcp-manager/README.md)               | 0.4.0  | MCP 服务器管理（patch 条目 CRUD + 探活，表单 / JSON 双模式）        | [`archive/mcp-manager`](archive/mcp-manager/)               |
+| [@dshp/widget-kit](archive/widget-kit/README.md)                 | 0.13.0 | 小组件规范与宿主（托盘 + 卡片 + 小面板，不含业务）                  | [`archive/widget-kit`](archive/widget-kit/)                 |
 
-**会话中心区**注册一个 tab（`conversation.view`，与原生「对话 / 轨迹」并列），tab 内用**左侧菜单**切换**三块**：
-
-- **用量统计**：基础数据指标卡 + Token 趋势折线 + 活动热力图 + 模型用量分布（圆环 + 多列模型列表，进度条与印出的百分比同口径）+ 每日在线 + 每日在线排行；顶部「小组件」工具条逐张开合那 5 张统计小组件。
-- **在线统计**：在线（你 + DSH）/ 对话进行中（DSH 的钟）/ 模型 + 工具（DSH 的活，精确）三口径 + 每日在线柱线图 + 每日排行 + 「口径与准确性」表（精确 / 估算 / 下界 徽标标出每个数字能不能信）。顶部常驻**空闲阈值**说明：三条规则（间隔 ≤ 阈值则整段计入、超过则断开、每段只算到最后一个事件所以是下界）+ 五档实测对比（可点切换，推荐 15 分钟）。
-- **设置**：分两个 Tab —— 「统计设置」（数据来源、缓存与扫描状态、**一键清除统计缓存并重算**、默认范围、在线空闲阈值）与「额度配置」（供应商与自动刷新）；与 `设置 → Token 总览` 是**同一个组件**（改一处两边同步）。
-
-> 所有统计都由 `$DSH_HOME/sessions/` 的会话日志重算：**迁移/备份请保留该目录**（派生缓存可丢，会话记录不能丢）。
-
-tab 头部「分享」按钮可把用量统计与在线统计**内聚成一块面板**（真组件原样拼装，非自绘），面板内可滚动查看，并支持下载 PNG / 复制图片或直接系统截图。
-
-![分享面板：用量统计与在线统计内聚成一块，可下载 PNG / 复制图片](plugins/token-meter/images/shared.png)
-
-| 用量统计                                                | 在线统计                                           | 旧版额度查询（重构前）                                |
-| ------------------------------------------------------- | -------------------------------------------------- | ----------------------------------------------------- |
-| ![用量统计](plugins/token-meter/images/token-usage.png) | ![在线统计](plugins/token-meter/images/online.png) | ![旧版额度查询](plugins/token-meter/images/quota.png) |
-
-> 其余插件暂无界面截图；使用说明与配置见各自的 README（上表「文档」列）。
+> 归档件保留源码、文档与已提交的 `lib/`，可直接从 `archive/<name>` 本地安装；不参与 CI、不再发版，也不再适配新版 DSH。归档清单与冻结版本见 [`archive/README.md`](archive/README.md)。
 
 ## 安装到 DSH
 
@@ -52,43 +39,38 @@ cd deepseek-harness-plugins
 pnpm install
 # lib/ 已提交，clone 下来就能用；改了 src 才需要 pnpm build
 
-# 安装你需要的插件（按目录名，可多个）
-dsh plugin --profile web add ./plugins/token-meter
+# 安装维护中的插件
 dsh plugin --profile web add ./plugins/vision-bridge
-dsh plugin --profile web add ./plugins/mcwiki-search
-dsh plugin --profile web add ./plugins/search-provider
-dsh plugin --profile web add ./plugins/web-style
-dsh plugin --profile web add ./plugins/skill-manager
-dsh plugin --profile web add ./plugins/mcp-manager
-dsh plugin --profile web add ./plugins/file-change-viewer
-dsh plugin --profile web add ./plugins/widget-kit
+
+# 归档插件仍可本地安装（冻结版本，不再更新；见 archive/README.md）
+# dsh plugin --profile web add ./archive/token-meter
 
 dsh web   # 重启生效
 ```
 
-- **`@dshp/widget-kit` 是可选的**：装上后，提供小组件的插件（如 `@dshp/token-meter` 的统计图表）自动升级为**框架卡片**——拖拽 / 缩放 / 最小化成胶囊 / 锁定位置 / 吸附预览 / 主题色玻璃外观 / 刷新后原地恢复；不装则退回插件自带的浮层，功能不缺、只是窗口能力弱一档。
 - **更新**：仓库内 `git pull` + `dsh web`（最快——lib 已提交，未改 src 无需 build）；兼容旧版 DSH：按 [`compat.json`](compat.json) 的 tag `git checkout <tag>` 后重跑上面的 add。
+- **归档插件**不随仓库更新：它们的源码与 `lib/` 已冻结，装与不装都不影响 `vision-bridge`。
 
 `dsh plugin add` 会把包写进 profile 的 `dsh.profile.bundles` —— **无需手动改配置文件**。
 各插件的详细安装说明、配置与常见问题见对应 README（上表）。
 
 ### 方式二：从 Release 安装（无需 clone；更新需手动重跑命令）
 
-CI 把每个插件打包成 tgz 发布到 Releases，`latest` 滚动发布固定跟随 main 最新构建（持 Latest 徽标、始终置顶）：
+CI 把维护中的插件打包成 tgz 发布到 Releases，`latest` 滚动发布固定跟随 main 最新构建（持 Latest 徽标、始终置顶）：
 
 ```bash
 # macOS / Linux
 dsh --profile web add \
-  https://github.com/Yinxe/deepseek-harness-plugins/releases/download/latest/dshp-mcwiki-search-latest.tgz
+  https://github.com/Yinxe/deepseek-harness-plugins/releases/download/latest/dshp-vision-bridge-latest.tgz
 ```
 
 ```powershell
 # Windows PowerShell
 dsh --profile web add `
-  'https://github.com/Yinxe/deepseek-harness-plugins/releases/download/latest/dshp-mcwiki-search-latest.tgz'
+  'https://github.com/Yinxe/deepseek-harness-plugins/releases/download/latest/dshp-vision-bridge-latest.tgz'
 ```
 
-全部插件的下载与安装命令见 [Releases](https://github.com/Yinxe/deepseek-harness-plugins/releases) 各预发布说明；**滚动更新 = 重跑同一条命令 + `dsh web` 重启**（`latest` 资产随 main 每次构建滚动重建）。
+维护中插件的下载与安装命令见 [Releases](https://github.com/Yinxe/deepseek-harness-plugins/releases) 各预发布说明；**滚动更新 = 重跑同一条命令 + `dsh web` 重启**（`latest` 资产随 main 每次构建滚动重建）。
 
 > **两个 pnpm 语义坑**，遇到别绕远路：
 >
@@ -97,12 +79,12 @@ dsh --profile web add `
 
 ### 历史版本（兼容旧版 DSH）
 
-main 永远跟随最新 DSH。老版本 DSH 用户装**静态历史版本**：按 [`compat.json`](compat.json) 记录的兼容 tag（「DSH 版本 → 推荐 tag」矩阵），到 [Releases](https://github.com/Yinxe/deepseek-harness-plugins/releases) 找对应版本 Release（`v*` tag 触发，静态存档、永不滚动），资产名 = `dshp-<插件名>-<tag>.tgz`：
+维护中的 `vision-bridge` 永远跟随最新 DSH。老版本 DSH 用户装**静态历史版本**：按 [`compat.json`](compat.json) 记录的兼容 tag（「DSH 版本 → 推荐 tag」矩阵），到 [Releases](https://github.com/Yinxe/deepseek-harness-plugins/releases) 找对应版本 Release（`v*` tag 触发，静态存档、永不滚动），资产名 = `dshp-<插件名>-<tag>.tgz`（历史 tag 里仍含当时尚未归档的插件，checkout 后路径为 `plugins/<name>`）：
 
 ```bash
 # 以 v0.1.5-rc.1 为例
 dsh --profile web add \
-  https://github.com/Yinxe/deepseek-harness-plugins/releases/download/v0.1.5-rc.1/dshp-mcwiki-search-v0.1.5-rc.1.tgz
+  https://github.com/Yinxe/deepseek-harness-plugins/releases/download/v0.1.5-rc.1/dshp-vision-bridge-v0.1.5-rc.1.tgz
 ```
 
 ### 方式三：Git 依赖安装 —— 支持 `update` 一键（可解析较慢，列为备选）
@@ -112,7 +94,7 @@ dsh --profile web add \
 ```bash
 # 安装（一次，此后 spec 永不改）
 dsh plugin --profile web add \
-  "github:Yinxe/deepseek-harness-plugins#latest&path:plugins/<插件名>"
+  "github:Yinxe/deepseek-harness-plugins#latest&path:plugins/vision-bridge"
 
 # 之后每次更新就这一条：
 dsh plugin --profile web update @dshp/<插件名>
@@ -121,8 +103,8 @@ dsh web   # 重启生效
 
 **同一机制的两种变体**（换选择器即可）：
 
-- `#semver:^1.0.0&path:plugins/<插件名>` —— 跟发版 tag 走的**受控升级**：只在 push 了匹配范围的新 tag 后 update 才会动；预发布 tag 受 node-semver 元组规则限制，范围必须显式含预发布（如 `^0.1.5-rc.1` 只匹配 0.1.5 系列）；
-- `#main&path:plugins/<插件名>` —— 与 `#latest` 等价的分支滚动。
+- `#semver:^1.0.0&path:plugins/vision-bridge` —— 跟发版 tag 走的**受控升级**：只在 push 了匹配范围的新 tag 后 update 才会动；预发布 tag 受 node-semver 元组规则限制，范围必须显式含预发布（如 `^0.1.5-rc.1` 只匹配 0.1.5 系列）；
+- `#main&path:plugins/vision-bridge` —— 与 `#latest` 等价的分支滚动。
 
 注意：
 
@@ -160,7 +142,7 @@ dsh web   # 重启生效
 ```text
 帮我从 monorepo Yinxe/deepseek-harness-plugins 安装插件（按需选择子目录）：
 1. git clone 仓库并 pnpm install
-2. dsh plugin --profile web add ./plugins/<子目录名>
+2. dsh plugin --profile web add ./plugins/vision-bridge
 3. 重启 dsh web，确认无报错、设置页出现对应条目
 ```
 
@@ -183,44 +165,28 @@ dsh web   # 重启生效
 ```
 .
 ├── plugins/
-│   ├── token-meter/            # @dshp/token-meter（Token 额度 + 用量统计）
-│   │   ├── src/host/           #   Host TS：providers/{opencode,deepseek,commandcode,manual} + view/errors + stats/
-│   │   ├── src/client/         #   Client TS：providers/{kit,sections,registry,ui/*} + Quota/Stats/TokenMeter Section
-│   │   ├── images/             #   界面截图（README「截图预览」用）
-│   │   ├── lib/                #   单文件构建产物（已提交，DSH git 安装必需）
-│   │   └── cordis.patch.yml    #   bundle 声明（id: dshp-token-meter）
-│   ├── vision-bridge/          # @dshp/vision-bridge（视觉桥接）
-│   │   ├── src/host/           #   Host TS：types/http/config/cache/vision/index
-│   │   ├── src/client/         #   Client TS：types/styles/api/components/VisionSection/index
-│   │   └── lib/                #   单文件构建产物（已提交）
-│   ├── mcwiki-search/          # @dshp/mcwiki-search（Minecraft Wiki 查询）
-│   ├── search-provider/        # @dshp/search-provider（web_search 供应商中枢）
-│   ├── skill-manager/          # @dshp/skill-manager（全局 + 工作区技能管理）
-│   ├── mcp-manager/            # @dshp/mcp-manager（MCP 服务器管理：patch 条目 CRUD + 探活）
-│   ├── file-change-viewer/     # @dshp/file-change-viewer（edit / write 行的高亮差异视图 + 独立设置节）
-│   │   ├── src/host/           #   Host TS：settings 命名空间 + /ext 两条配置路由 + patch 工具
-│   │   ├── src/shared/         #   unified diff 解析 / 应用（Host 与 Client 共用）
-│   │   ├── src/client/         #   Client TS：diff（LCS 三口径）+ FileChangeRow + 设置节 + prefs store
-│   │   ├── scripts/            #   check-host.mjs（47）+ check-patch.mjs（41）+ check-client.mjs（143）
-│   │   └── lib/                #   单文件构建产物（已提交）
-│   ├── widget-kit/             # @dshp/widget-kit（小组件规范与宿主：托盘 + 卡片 + 小面板，不含业务）
-│   │   ├── spec.d.ts           #   对外契约（其它插件 import type 的唯一入口）
-│   │   ├── src/client/         #   Client TS：spec/geometry/store/service/badges/hooks + Tray/Card/Popover
-│   │   ├── src/client/widgets/ #   参考组件：clock（尺寸呈现示例）/ diagnostics（注册表诊断）
-│   │   ├── scripts/            #   六个自检（几何 / 存储 / 契约漂移 / 样式与依赖 / 无头冒烟）
-│   │   └── lib/                #   单文件构建产物（已提交）
-│   └── web-style/              # @dshp/web-style（8 套主题画廊 + 背景效果 + 壁纸取色 + 全局圆角）
-│       ├── src/host/           #   Host TS：types/http/config + themes/（token 单源，8 个主题模块）
-│       ├── src/client/         #   Client TS：GallerySection/apply-theme/background{,-dots,-aurora,-flow}/md3/official/radius/themes/api/state
-│       ├── scripts/            #   check-themes.mjs（目录 ↔ 画廊 meta ↔ 产物一致性）
-│       └── lib/                #   单文件构建产物（已提交）
+│   └── vision-bridge/          # @dshp/vision-bridge（视觉桥接，唯一维护中）
+│       ├── src/host/           #   Host TS：types/http/config/cache/vision/index
+│       ├── src/client/         #   Client TS：types/styles/api/components/VisionSection/index
+│       ├── lib/                #   单文件构建产物（已提交，DSH git 安装必需）
+│       └── cordis.patch.yml    #   bundle 声明（id: dshp-vision-bridge）
+├── archive/                    # 冻结的历史插件（源码 + lib + 文档，不参与构建 / 发布）
+│   ├── token-meter/            # @dshp/token-meter 0.15.0
+│   ├── file-change-viewer/     # @dshp/file-change-viewer 0.4.0
+│   ├── mcwiki-search/          # @dshp/mcwiki-search 1.6.0
+│   ├── search-provider/        # @dshp/search-provider 0.5.0
+│   ├── web-style/              # @dshp/web-style 0.5.0
+│   ├── skill-manager/          # @dshp/skill-manager 0.4.0
+│   ├── mcp-manager/            # @dshp/mcp-manager 0.4.0
+│   ├── widget-kit/             # @dshp/widget-kit 0.13.0
+│   └── README.md               # 归档清单、冻结版本与安装说明
 ├── AGENT.md                    # 开发规范·规则版（红线 + 指路）
 ├── docs/                       # 规范细节（脚手架 / TS / package.json / 构建 / Cordis / settings / 路由 / Client / provider / 时区 / 安全 / 门禁 / 发布 / 文档 / 小组件）——旧 AGENT.md §1–§14 的完整下沉
 ├── tsconfig.base.json          # 共享 TS 配置（NodeNext + strict）
-├── tsconfig.json               # solution 引用
-├── pnpm-workspace.yaml         # packages: plugins/* + storeDir
-├── compat.json                 # DSH 版本兼容矩阵（空 = 暂无历史包袱）
-└── .github/workflows/CICD.yml  # 门禁 + 打包发布：main→latest 滚动发布，v* tag→版本 Release，其他分支→同名预发布；dev 与 feature/* 仅门禁
+├── tsconfig.json               # solution 引用（只含维护中的插件）
+├── pnpm-workspace.yaml         # packages: plugins/*（archive 不在 workspace）
+├── compat.json                 # DSH 版本兼容矩阵
+└── .github/workflows/CICD.yml  # 门禁 + 打包发布：main→latest 滚动发布，v* tag→版本 Release，其他分支仅门禁
 ```
 
 每个插件内部一律是同一套布局：`src/host/`（Node 半）+ `src/client/`（浏览器 半）+ `lib/`（已提交的单文件产物）+ `cordis.patch.yml` + `AGENT.md`（本插件的局部规则与事实，指回根规范）。
@@ -229,12 +195,12 @@ dsh web   # 重启生效
 
 每个插件只有一个配置键，四处同名，等于 `dshp-<目录名>`：
 
-| 位置                                                         | 值（以 token-meter 为例） |
-| ------------------------------------------------------------ | ------------------------- |
-| 配置命名空间（条目 `Config` + volatile / `settings.update`） | `dshp-token-meter`        |
-| 同源路由前缀                                                 | `/ext/dshp-token-meter/*` |
-| `cordis.patch.yml` 的 `id`                                   | `dshp-token-meter`        |
-| 设置页 `settings.section` 的 `id`                            | `dshp-token-meter`        |
+| 位置                                                         | 值（以 vision-bridge 为例） |
+| ------------------------------------------------------------ | --------------------------- |
+| 配置命名空间（条目 `Config` + volatile / `settings.update`） | `dshp-vision-bridge`        |
+| 同源路由前缀                                                 | `/ext/dshp-vision-bridge/*` |
+| `cordis.patch.yml` 的 `id`                                   | `dshp-vision-bridge`        |
+| 设置页 `settings.section` 的 `id`                            | `dshp-vision-bridge`        |
 
 **插件只读自己的键，不做任何历史键兼容与迁移**：不读 `dshp-inx-*` 等旧命名空间、不读 `storages/*.json`、不读不改写 `settings.yaml`（旧配置一次性导入是平台的事；规范见 [docs/settings.md](docs/settings.md)）。升级时若键名有变，请按各插件 README 的更新日志**手工**把旧分节改名或重配；配置键改名属 breaking 变更。
 
@@ -257,8 +223,8 @@ pnpm build         # pnpm -r build
 pnpm test          # pnpm -r test
 
 # 单个插件
-pnpm --filter @dshp/token-meter build
-pnpm --filter @dshp/token-meter typecheck
+pnpm --filter @dshp/vision-bridge build
+pnpm --filter @dshp/vision-bridge typecheck
 ```
 
 提交前跑 `pnpm check`（构建 → 类型检查 → 质量检查 → 格式化一步完成）；CI 仍按严格检查序把关；改了 `src/` 必须重新 build 并把 `lib/` 一起提交。
