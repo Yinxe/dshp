@@ -1,30 +1,31 @@
 /**
- * Host 同源路由封装
+ * Host 同源路由封装。
  *  - GET  /ext/dshp-vision-bridge/state
  *  - POST /ext/dshp-vision-bridge/config
  *  - GET  /ext/dshp-vision-bridge/check
  */
-import type { CheckResponse, ConfigPatch, StateResponse, VisionConfig } from './types.js';
+import type { CheckResponse, ConfigPatch, SaveResponse, StateResponse } from './types.js';
 
 const BASE = '/ext/dshp-vision-bridge';
 
-export async function fetchState(): Promise<StateResponse> {
-  const r = await fetch(`${BASE}/state`, { cache: 'no-store' });
-  return (await r.json()) as StateResponse;
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(BASE + path, { cache: 'no-store', ...init });
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return (await response.json()) as T;
 }
 
-export async function saveConfig(
-  patch: ConfigPatch,
-): Promise<{ ok: boolean; config?: VisionConfig; error?: string }> {
-  const r = await fetch(`${BASE}/config`, {
+export function fetchState(): Promise<StateResponse> {
+  return request<StateResponse>('/state');
+}
+
+export function saveConfig(patch: ConfigPatch): Promise<SaveResponse> {
+  return request<SaveResponse>('/config', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(patch),
   });
-  return (await r.json()) as { ok: boolean; config?: VisionConfig; error?: string };
 }
 
-export async function checkConnectivity(): Promise<CheckResponse> {
-  const r = await fetch(`${BASE}/check`, { cache: 'no-store' });
-  return (await r.json()) as CheckResponse;
+export function checkRoutes(): Promise<CheckResponse> {
+  return request<CheckResponse>('/check');
 }

@@ -1,24 +1,11 @@
 /**
- * Client 入口（浏览器）
+ * Client 入口（浏览器）。
  *
- * 打包后为单文件 lib/client.js。**loader 注册壳不写在这里**——由构建预设的 banner / footer 生成：
+ * 打包后是单文件 lib/client.js；loader 注册壳由构建预设的 banner / footer 拼出，
+ * 本文件只是普通 ES 模块：顶层 import 官方 primitives 与自己的组件，导出 inject / apply。
+ * react / react/jsx-runtime / primitives 都在 external 列表里，由 shell 的冻结模块表注入。
  *
- * ```
- * window.__ModuleLoader__.load({ id: '@dshp/vision-bridge', factory: (require) => {
- *   var module = { exports: {} }; var exports = module.exports;
- *   ...本文件与它 import 的一切...
- *   return module.exports;
- * } });
- * ```
- *
- * 所以本文件就是一个**普通 ES 模块**：顶层 `import` 官方 primitives 与自己的组件，导出 `inject` /
- * `apply`。react / react/jsx-runtime / primitives 都在 external 列表里，编译成 `require(...)`，
- * 由 factory 的 `require`（shell 的冻结模块表）解析——**绝不打包**，否则会出现第二份 React。
- *
- * 只注册一处：`settings.section`（list 槽位）——设置左侧导航里的「视觉模型」一节，`id` 用本插件的
- * settings 命名空间（与本仓其它插件一致），而不是往通用页面里塞控件。
- *
- * @module @dshp/vision-bridge/client
+ * 只注册一处：`settings.section`（list 槽位）——设置左侧导航里的「视觉模型」。
  */
 import { VisionSection } from './VisionSection.js';
 import type { ClientContext, SlotsService } from './types.js';
@@ -26,32 +13,22 @@ import type { ClientContext, SlotsService } from './types.js';
 /** 设置节 id = settings 命名空间 = cordis 行 id（仓库约定：NS 四处同名）。 */
 const SETTINGS_NS = 'dshp-vision-bridge';
 
-/**
- * 设置节的导航排序。
- *
- * 25 是本仓占位表里 vision-bridge 的固定位置（其后 mcwiki-search 26 / token-meter 27 /
- * search-provider 28 / skill-manager 29 / mcp-manager 30 / file-change-viewer 31）。
- */
+/** 设置节的导航排序（25 是本仓占位表里 vision-bridge 的固定位置）。 */
 const SETTINGS_ORDER = 25;
 
 /** 设置节在左侧导航里的标题。 */
 const SETTINGS_LABEL = '视觉模型';
 
-/** client 半声明的服务依赖（缺了就不激活，由 cordis 在 slots 出现后重试）。 */
+/** client 半声明的服务依赖（slots 出现后再激活）。 */
 export const inject = ['slots'];
 
-/**
- * client 半入口：由 shell 的模块系统在 slots 就绪后调用一次。
- *
- * @param ctx - client 侧 cordis 上下文（本插件只用 `get('slots')` 与 `effect`）。
- */
+/** client 半入口：由 shell 的模块系统在 slots 就绪后调用一次。 */
 export function apply(ctx: ClientContext): void {
   const slots = ctx.get('slots') as SlotsService | undefined;
   if (slots === undefined) return;
 
-  // 样式不在这里注入：`styles.module.css` 由构建预设内联进 bundle，模块被求值时就地插一条
-  // `<style data-plugin>`（卸载由 shell 按 data-plugin 清理）。见 shared/tsup.preset.ts。
-
+  // 样式不在这里注入：styles.module.css 由构建预设内联进 bundle，模块求值时自动插
+  // 一条 <style data-plugin>，卸载由 shell 按 data-plugin 清理。
   try {
     ctx.effect(
       () =>

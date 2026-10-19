@@ -67,7 +67,7 @@ export type AnyLlm = any;
 - `verbatimModuleSyntax`：类型导入必须 `import type { X } from ...`，值和类型混写会被打回。
 - `isolatedModules`：不许 `export =` / 常量枚举，`const enum` 禁用。
 - host 按职责拆文件：`index.ts` 只做装配（apply + 注册），`types.ts` 类型，`config.ts` 默认值+schema+消毒，`http.ts` 路由小工具，`cache.ts` 状态，业务逻辑独立文件。**单个文件超过 ~600 行就拆**（归档的 token-meter `index.ts` 627 行是上限，不是目标）。
-- client 按层拆：`types.ts`（协议 + 领域类型，纯类型）/ `api.ts`（fetch 封装）/ `styles.module.css`（样式，声明是全仓共享的一份）/ `components.tsx`（Badge/Row/Select/Switch 等通用小构件）/ `<X>Section.tsx`（业务）/ `index.tsx`（**只导出 `inject` 与 `apply`**，loader 壳由构建预设生成）。
+- client 按层拆：`types.ts`（协议 + 领域类型，纯类型）/ `api.ts`（fetch 封装）/ `styles.module.css`（样式，声明是全仓共享的一份）/ `components.tsx`（Row/Select 等通用小构件；开关/标签/按钮直接用 primitives）/ `<X>Section.tsx`（业务）/ `index.tsx`（**只导出 `inject` 与 `apply`**，loader 壳由构建预设生成）。
   通用小构件进 `components.tsx`，别在 Section 里重复造。含 JSX 的文件必须是 `.tsx`，`tsconfig` 的 `jsx: react-jsx` 已经开好。
   跨组件共享的状态（偏好缓存、会话覆盖、缓存订阅）写成**模块级 + 导出的 hook**，不要再造 `createXxx(React, ...)` 工厂。
 

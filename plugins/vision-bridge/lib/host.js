@@ -1,3 +1,76 @@
+// src/host/cache.ts
+var MAX_PER_SESSION = 20;
+var MAX_SESSIONS = 50;
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function copyAttachment(value) {
+  if (!isRecord(value)) return null;
+  const attachmentId = value["attachmentId"];
+  const mediaType = value["mediaType"];
+  const bytes = value["bytes"];
+  const width = value["width"];
+  const height = value["height"];
+  if (typeof attachmentId !== "string" || attachmentId.length === 0) return null;
+  if (typeof mediaType !== "string" || mediaType.length === 0) return null;
+  if (typeof bytes !== "number" || !Number.isFinite(bytes)) return null;
+  if (typeof width !== "number" || typeof height !== "number") return null;
+  const out = { attachmentId, mediaType, bytes, width, height };
+  const name2 = value["name"];
+  if (typeof name2 === "string" && name2.length > 0) out.name = name2.slice(0, 120);
+  return out;
+}
+function walkBlocks(blocks, out) {
+  if (!Array.isArray(blocks)) return;
+  for (const block of blocks) {
+    if (!isRecord(block)) continue;
+    if (block["type"] === "image") {
+      const copied = copyAttachment(block["attachment"]);
+      if (copied) out.push(copied);
+    } else if (block["type"] === "tool-result" && Array.isArray(block["content"])) {
+      walkBlocks(block["content"], out);
+    }
+  }
+}
+function sessionIdOf(agent) {
+  if (!isRecord(agent)) return void 0;
+  const id = agent["id"];
+  return typeof id === "string" && id.length > 0 ? id : void 0;
+}
+function createImageCache() {
+  const sessions = /* @__PURE__ */ new Map();
+  function push2(sessionId, refs) {
+    if (sessionId.length === 0 || refs.length === 0) return;
+    let images = sessions.get(sessionId);
+    if (!images) {
+      images = /* @__PURE__ */ new Map();
+      sessions.set(sessionId, images);
+    }
+    for (const ref of refs) {
+      images.delete(ref.attachmentId);
+      images.set(ref.attachmentId, ref);
+    }
+    while (images.size > MAX_PER_SESSION) {
+      const oldest = images.keys().next();
+      if (oldest.done) break;
+      images.delete(oldest.value);
+    }
+    while (sessions.size > MAX_SESSIONS) {
+      const oldest = sessions.keys().next();
+      if (oldest.done) break;
+      sessions.delete(oldest.value);
+    }
+  }
+  function get(sessionId) {
+    const images = sessions.get(sessionId);
+    if (!images) return [];
+    sessions.delete(sessionId);
+    sessions.set(sessionId, images);
+    return [...images.values()];
+  }
+  return { push: push2, get };
+}
+
 // ../../node_modules/.pnpm/@deepseek-ai+cosmokit@1.8.5/node_modules/@deepseek-ai/cosmokit/lib/index.js
 function isNullable(value) {
   return value === null || value === void 0;
@@ -862,338 +935,287 @@ defineMethod("transform", [
   "preserve"
 ], ({ inner }, isInner) => inner.toString(isInner));
 
-// src/host/http.ts
-var NAMESPACE_PATTERN = /^[a-z][a-z0-9-]*$/;
-function settingsNamespace(value) {
-  if (!NAMESPACE_PATTERN.test(value)) {
-    throw new TypeError(`settings namespace "${value}" must match ${String(NAMESPACE_PATTERN)}`);
-  }
-  return value;
-}
-function json(res, status, value) {
-  res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
-  res.end(JSON.stringify(value));
-}
-function sameOrigin(req) {
-  const rawOrigin = req.headers["origin"];
-  const origin = typeof rawOrigin === "string" ? rawOrigin : void 0;
-  if (origin === void 0) return true;
-  const rawHost = req.headers["host"];
-  const host = typeof rawHost === "string" ? rawHost : "";
-  return origin === `http://${host}` || origin === `https://${host}`;
-}
-function readBody(req, limit = 1024 * 1024) {
-  return new Promise((resolve2, reject) => {
-    const chunks = [];
-    let size = 0;
-    req.on("data", (chunk) => {
-      size += chunk.length;
-      if (size > limit) {
-        reject(new Error("payload-too-large"));
-        try {
-          req.destroy();
-        } catch {
-        }
-        return;
-      }
-      chunks.push(chunk);
-    });
-    req.on("end", () => resolve2(Buffer.concat(chunks).toString("utf8")));
-    req.on("error", reject);
-  });
-}
-
 // src/host/config.ts
-var NS = settingsNamespace("dshp-vision-bridge");
-var VisionRouteSchema = Schema.object({
+var NS = "dshp-vision-bridge";
+var RouteSchema = Schema.object({
   provider: Schema.string().required(),
   model: Schema.string().required()
 });
 var ConfigSchema = Schema.object({
   enabled: Schema.boolean().default(true).volatile(),
-  primary: Schema.union([VisionRouteSchema, Schema.const(null)]).default(null).volatile(),
-  fallback: Schema.union([VisionRouteSchema, Schema.const(null)]).default(null).volatile(),
-  detail: Schema.union([Schema.const("auto"), Schema.const("low"), Schema.const("high")]).default("auto").volatile(),
-  maxImages: Schema.number().step(1).min(1).max(8).default(4).volatile(),
-  promptTemplate: Schema.string().default("").volatile()
+  primary: Schema.union([RouteSchema, Schema.const(null)]).default(null).volatile(),
+  fallback: Schema.union([RouteSchema, Schema.const(null)]).default(null).volatile()
 });
 
-// src/host/cache.ts
-var MAX_PER_SESSION = 20;
-var MAX_SESSIONS = 50;
-function isRecord(v) {
-  return v !== null && typeof v === "object" && !Array.isArray(v);
+// src/host/http.ts
+function json(res, status, value) {
+  if (res.writableEnded) return;
+  res.writeHead(status, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store"
+  });
+  res.end(JSON.stringify(value));
 }
-function copyAttachment(a) {
-  if (!isRecord(a)) return null;
-  if (typeof a["attachmentId"] !== "string" || typeof a["mediaType"] !== "string") return null;
-  if (typeof a["bytes"] !== "number") return null;
-  const out = {
-    attachmentId: a["attachmentId"],
-    mediaType: a["mediaType"],
-    bytes: a["bytes"]
-  };
-  if (typeof a["width"] === "number") out.width = a["width"];
-  if (typeof a["height"] === "number") out.height = a["height"];
-  if (typeof a["name"] === "string" && a["name"].length > 0) out.name = a["name"].slice(0, 120);
-  return out;
+function sameOrigin(req) {
+  const origin = req.headers.origin;
+  if (origin === void 0) return true;
+  if (typeof origin !== "string") return false;
+  const host = req.headers.host;
+  if (typeof host !== "string" || host.length === 0) return false;
+  return origin === `http://${host}` || origin === `https://${host}`;
 }
-function walkBlocks(blocks, out) {
-  if (!Array.isArray(blocks)) return;
-  for (const b of blocks) {
-    if (!isRecord(b)) continue;
-    if (b["type"] === "image") {
-      const c = copyAttachment(b["attachment"]);
-      if (c) out.push(c);
-    } else if (b["type"] === "tool-result" && Array.isArray(b["content"])) {
-      walkBlocks(b["content"], out);
-    }
-  }
-}
-function sessionIdOf(agent) {
-  try {
-    if (isRecord(agent)) {
-      const s = agent["session"];
-      if (isRecord(s) && typeof s["id"] === "string") return s["id"];
-      if (typeof agent["id"] === "string") return agent["id"];
-    }
-  } catch {
-  }
-  return void 0;
-}
-function createImageCache() {
-  const imageCache = /* @__PURE__ */ new Map();
-  function push2(sessionId, refs) {
-    if (typeof sessionId !== "string" || sessionId.length === 0) return;
-    if (!Array.isArray(refs) || refs.length === 0) return;
-    let list = imageCache.get(sessionId);
-    if (!list) {
-      list = [];
-      imageCache.set(sessionId, list);
-    }
-    for (const r of refs) list.push(r);
-    while (list.length > MAX_PER_SESSION) list.shift();
-    while (imageCache.size > MAX_SESSIONS) {
-      const it = imageCache.keys().next();
-      if (it.done) break;
-      imageCache.delete(it.value);
-    }
-  }
-  function get(sessionId) {
-    return imageCache.get(sessionId) ?? [];
-  }
-  return { push: push2, get };
+function readBody(req, limit = 64 * 1024) {
+  return new Promise((resolve2, reject) => {
+    const chunks = [];
+    let size = 0;
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+      try {
+        req.destroy();
+      } catch {
+      }
+    };
+    req.on("data", (chunk) => {
+      if (settled) return;
+      size += chunk.length;
+      if (size > limit) {
+        fail(new Error("payload-too-large"));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (settled) return;
+      settled = true;
+      resolve2(Buffer.concat(chunks).toString("utf8"));
+    });
+    req.on("error", (error) => fail(error));
+  });
 }
 
 // src/host/vision.ts
-function isRecord2(v) {
-  return v !== null && typeof v === "object" && !Array.isArray(v);
+function isRecord2(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
 }
-function sameRoute(a, b) {
-  if (!a || !b) return false;
-  return a.provider === b.provider && a.model === b.model;
+function compareText(a, b) {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
-function candidatesFromSection(sec) {
+function displayName(value, fallback) {
+  return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+function getPath(value, path) {
+  let current = value;
+  for (const key of path) {
+    if (!isRecord2(current)) return void 0;
+    current = current[key];
+  }
+  return current;
+}
+function imageModalities(value) {
+  const modalities = isRecord2(value) ? value["input"] : void 0;
+  if (Array.isArray(modalities)) return modalities;
+  const fallback = isRecord2(value) ? value["inputModalities"] : void 0;
+  return Array.isArray(fallback) ? fallback : null;
+}
+function modelsFromSettings(settings, llm) {
+  if (typeof llm.listConfigurableProviders !== "function") return [];
+  let entries;
+  try {
+    entries = llm.listConfigurableProviders();
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(entries) || entries.length === 0) return [];
+  let descriptors;
+  try {
+    descriptors = settings.describe({ redactSecrets: true });
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(descriptors)) return [];
   const out = [];
-  if (!isRecord2(sec)) return out;
-  const providers = sec["providers"];
-  if (!isRecord2(providers)) return out;
-  for (const prov of Object.keys(providers)) {
-    const prof = providers[prov];
-    if (!isRecord2(prof)) continue;
-    const models = prof["models"];
-    if (!Array.isArray(models)) continue;
-    for (const m of models) {
-      if (!isRecord2(m) || typeof m["id"] !== "string" || m["id"].length === 0) continue;
-      const input = m["input"];
-      if (!Array.isArray(input) || input.indexOf("image") < 0) continue;
-      out.push({
-        provider: prov,
-        model: m["id"],
-        name: typeof m["name"] === "string" && m["name"].length > 0 ? m["name"] : m["id"]
-      });
+  for (const entry of entries) {
+    if (!isRecord2(entry)) continue;
+    const provider = entry["provider"];
+    const ns = entry["settingsNs"];
+    const path = entry["settingsPath"];
+    if (typeof provider !== "string" || typeof ns !== "string" || !Array.isArray(path)) continue;
+    const descriptor = descriptors.find((item) => isRecord2(item) && item["ns"] === ns);
+    if (!isRecord2(descriptor)) continue;
+    const keys = path.filter((key) => typeof key === "string");
+    const profile = getPath(descriptor["value"], keys);
+    if (!isRecord2(profile) || !Array.isArray(profile["models"])) continue;
+    for (const model of profile["models"]) {
+      if (!isRecord2(model)) continue;
+      const id = model["id"];
+      if (typeof id !== "string" || id.length === 0) continue;
+      const modalities = imageModalities(model);
+      if (!modalities || !modalities.includes("image")) continue;
+      out.push({ provider, model: id, name: displayName(model["name"], id) });
     }
   }
   return out;
+}
+async function modelsFromRuntime(llm) {
+  let providers;
+  try {
+    providers = llm.listProviders();
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(providers)) return [];
+  const groups = await Promise.all(
+    providers.map(async (provider) => {
+      if (!isRecord2(provider)) return [];
+      const providerId = provider["id"];
+      if (typeof providerId !== "string" || providerId.length === 0) return [];
+      let models;
+      try {
+        models = await llm.listModels(providerId);
+      } catch {
+        return [];
+      }
+      if (!Array.isArray(models)) return [];
+      const out = [];
+      for (const info2 of models) {
+        if (!isRecord2(info2)) continue;
+        const id = info2["id"];
+        if (typeof id !== "string" || id.length === 0) continue;
+        const modalities = imageModalities(info2);
+        if (!modalities || !modalities.includes("image")) continue;
+        const owner = typeof info2["provider"] === "string" ? info2["provider"] : providerId;
+        out.push({ provider: owner, model: id, name: displayName(info2["name"], id) });
+      }
+      return out;
+    })
+  );
+  return groups.flat();
 }
 async function listVisionModels(ctx) {
-  const merged = [];
-  const seen = /* @__PURE__ */ new Set();
-  function add(provider, model, name2) {
-    if (typeof provider !== "string" || typeof model !== "string") return;
-    const key = provider + "/" + model;
-    if (seen.has(key)) return;
-    seen.add(key);
-    merged.push({ provider, model, name: typeof name2 === "string" && name2 ? name2 : model });
-  }
-  let settings = null;
-  try {
-    settings = ctx.get("settings");
-  } catch {
-    settings = null;
-  }
-  if (settings) {
-    for (const ns of ["llm-pi-ai", "llm-deepseek"]) {
-      try {
-        const sec = settings.get(ns);
-        for (const c of candidatesFromSection(sec)) add(c.provider, c.model, c.name);
-      } catch {
-      }
-    }
-  }
-  let llm = null;
-  try {
-    llm = ctx.get("llm");
-  } catch {
-    llm = null;
-  }
-  if (llm && typeof llm.listProviders === "function") {
-    let providers = [];
-    try {
-      providers = llm.listProviders() ?? [];
-    } catch {
-      providers = [];
-    }
-    if (Array.isArray(providers)) {
-      for (const prov of providers) {
-        const pid = isRecord2(prov) && typeof prov["id"] === "string" ? prov["id"] : void 0;
-        if (!pid) continue;
-        try {
-          if (typeof llm.listModels !== "function") continue;
-          const models = await llm.listModels(pid);
-          if (!Array.isArray(models)) continue;
-          for (const info of models) {
-            if (!isRecord2(info)) continue;
-            if (typeof info["id"] !== "string" || typeof info["provider"] !== "string") continue;
-            const mods = info["inputModalities"];
-            if (!Array.isArray(mods) || mods.indexOf("image") < 0) continue;
-            add(
-              info["provider"],
-              info["id"],
-              typeof info["name"] === "string" ? info["name"] : info["id"]
-            );
-          }
-        } catch {
-        }
-      }
-    }
-  }
-  merged.sort((a, b) => {
-    if (a.provider < b.provider) return -1;
-    if (a.provider > b.provider) return 1;
-    if (a.model < b.model) return -1;
-    if (a.model > b.model) return 1;
-    return 0;
-  });
-  return merged;
+  const llm = ctx.get("llm");
+  if (!llm) return [];
+  const settings = ctx.get("settings");
+  const merged = /* @__PURE__ */ new Map();
+  const add = (model) => {
+    const key = model.provider + "\0" + model.model;
+    if (!merged.has(key)) merged.set(key, model);
+  };
+  if (settings) for (const model of modelsFromSettings(settings, llm)) add(model);
+  for (const model of await modelsFromRuntime(llm)) add(model);
+  const models = [...merged.values()];
+  models.sort((a, b) => compareText(a.provider, b.provider) || compareText(a.model, b.model));
+  return models;
 }
-async function runOneVision(llm, route, images, question, signal, sessionId, nextId) {
+function sameRoute(a, b) {
+  return a !== null && b !== null && a.provider === b.provider && a.model === b.model;
+}
+async function runOneVision(llm, route, images, question, signal, sessionId) {
   const content = [];
-  for (const img of images) content.push({ type: "image", attachment: img });
+  for (const image of images) content.push({ type: "image", attachment: image });
   content.push({ type: "text", text: question });
-  const messages = [
-    {
-      id: nextId("vision-msg"),
-      role: "user",
-      content,
-      source: { kind: "user" }
-    }
-  ];
-  const opts = { provider: route.provider, model: route.model, messages };
-  if (typeof sessionId === "string" && sessionId.length > 0) {
-    try {
-      opts["sessionId"] = sessionId;
-    } catch {
-    }
-  }
-  if (signal && typeof signal === "object" && signal.aborted !== true) {
-    try {
-      opts["signal"] = signal;
-    } catch {
-    }
-  }
-  let out = "";
-  let sawDelta = false;
-  const stream = llm.stream(opts);
-  for await (const chunk of stream) {
-    if (!chunk || typeof chunk !== "object") continue;
-    if (chunk["type"] === "text-delta" && typeof chunk["text"] === "string") {
-      sawDelta = true;
-      out += chunk["text"];
-    } else if (chunk["type"] === "block-end" && isRecord2(chunk["block"]) && chunk["block"]["type"] === "text") {
-      if (!sawDelta && typeof chunk["block"]["text"] === "string") out += chunk["block"]["text"];
-    } else if (chunk["type"] === "finish" && isRecord2(chunk["reason"])) {
-      const kind = chunk["reason"]["kind"];
-      if (kind === "error") {
-        const failure = chunk["reason"]["failure"];
-        const msg = (isRecord2(failure) && typeof failure["message"] === "string" ? failure["message"] : "\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u5931\u8D25").slice(0, 500);
-        throw new Error(String(msg));
+  const options = {
+    provider: route.provider,
+    model: route.model,
+    messages: [{ role: "user", content }]
+  };
+  if (sessionId) options["sessionId"] = sessionId;
+  if (signal) options["signal"] = signal;
+  let text = "";
+  const deltaBlocks = /* @__PURE__ */ new Set();
+  const endBlocks = /* @__PURE__ */ new Set();
+  for await (const chunk of llm.stream(options)) {
+    if (!isRecord2(chunk)) continue;
+    const type = chunk["type"];
+    if (type === "text-delta" && typeof chunk["text"] === "string") {
+      text += chunk["text"];
+      if (typeof chunk["index"] === "number") deltaBlocks.add(chunk["index"]);
+    } else if (type === "block-end" && isRecord2(chunk["block"]) && chunk["block"]["type"] === "text" && typeof chunk["block"]["text"] === "string") {
+      const index = typeof chunk["index"] === "number" ? chunk["index"] : -1;
+      if (!deltaBlocks.has(index) && !endBlocks.has(index)) {
+        text += chunk["block"]["text"];
+        endBlocks.add(index);
       }
-      if (kind === "aborted") throw new Error("\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u88AB\u4E2D\u6B62");
+    } else if (type === "finish" && isRecord2(chunk["reason"])) {
+      const kind = chunk["reason"]["kind"];
+      if (kind === "error" || kind === "aborted") {
+        const failure = chunk["reason"]["failure"];
+        const message = isRecord2(failure) && typeof failure["message"] === "string" ? failure["message"] : kind === "aborted" ? "\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u88AB\u4E2D\u6B62" : "\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u5931\u8D25";
+        throw new Error(message.slice(0, 500));
+      }
     }
   }
-  if (out.trim().length === 0) throw new Error("\u89C6\u89C9\u6A21\u578B\u8FD4\u56DE\u4E3A\u7A7A");
-  return out;
+  if (signal?.aborted) throw new Error("\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u88AB\u4E2D\u6B62");
+  const result = text.trim();
+  if (!result) throw new Error("\u89C6\u89C9\u6A21\u578B\u8FD4\u56DE\u4E3A\u7A7A");
+  return result;
 }
-async function describeWithFallback(ctx, cfg, images, question, signal, sessionId, nextId) {
-  let llm = null;
-  try {
-    llm = ctx.get("llm");
-  } catch {
-    llm = null;
-  }
-  if (!llm || typeof llm.stream !== "function") throw new Error("\u5F53\u524D\u73AF\u5883\u6CA1\u6709\u53EF\u7528\u7684 llm \u670D\u52A1");
-  const attempts = [];
-  if (cfg.primary) attempts.push({ route: cfg.primary, fallback: false });
-  if (cfg.fallback && !sameRoute(cfg.fallback, cfg.primary))
-    attempts.push({ route: cfg.fallback, fallback: true });
-  if (attempts.length === 0) {
+async function describeWithFallback(ctx, cfg, images, question, signal, sessionId) {
+  const llm = ctx.get("llm");
+  if (!llm) throw new Error("\u5F53\u524D\u73AF\u5883\u6CA1\u6709\u53EF\u7528\u7684 llm \u670D\u52A1");
+  const routes = [];
+  if (cfg.primary) routes.push(cfg.primary);
+  if (cfg.fallback && !sameRoute(cfg.fallback, cfg.primary)) routes.push(cfg.fallback);
+  if (routes.length === 0) {
     const models = await listVisionModels(ctx);
-    if (models.length === 0)
-      throw new Error(
-        "\u6CA1\u6709\u53EF\u7528\u7684\u89C6\u89C9\u6A21\u578B\uFF1A\u8BF7\u5148\u5728\u8BBE\u7F6E \u2192 \u89C6\u89C9\u6A21\u578B \u4E2D\u9009\u62E9\uFF08\u9700\u8981\u5728 setting.yml \u91CC\u7ED9\u6A21\u578B\u52A0\u4E0A input: [text, image]\uFF09"
-      );
     const first = models[0];
-    attempts.push({ route: { provider: first.provider, model: first.model }, fallback: false });
+    if (!first) {
+      throw new Error(
+        "\u6CA1\u6709\u53EF\u7528\u7684\u89C6\u89C9\u6A21\u578B\uFF1A\u8BF7\u5728 \u8BBE\u7F6E \u2192 \u6A21\u578B \u4E2D\u4E3A\u591A\u6A21\u6001\u6A21\u578B\u52FE\u9009 image \u8F93\u5165\uFF0C\u6216\u5728 \u8BBE\u7F6E \u2192 \u89C6\u89C9\u6A21\u578B \u4E2D\u9009\u62E9\u4E3B\u6A21\u578B"
+      );
+    }
+    routes.push({ provider: first.provider, model: first.model });
   }
-  let lastError = null;
-  for (const a of attempts) {
+  let lastError;
+  for (const route of routes) {
+    if (signal?.aborted) throw new Error("\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u88AB\u4E2D\u6B62");
     try {
-      const text = await runOneVision(llm, a.route, images, question, signal, sessionId, nextId);
-      return { text, route: a.route, fallbackUsed: a.fallback };
-    } catch (e) {
-      lastError = e;
+      return { text: await runOneVision(llm, route, images, question, signal, sessionId), route };
+    } catch (error) {
+      lastError = error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error("\u89C6\u89C9\u6A21\u578B\u8C03\u7528\u5931\u8D25");
-}
-function buildQuestion(base, detail, promptTemplate) {
-  let q = (typeof base === "string" ? base : "").trim();
-  if (!q) q = "\u8BF7\u63CF\u8FF0\u8FD9\u5F20\u56FE\u7247\u7684\u5185\u5BB9\u3002";
-  let suffix = "";
-  if (detail === "high")
-    suffix = "\n\n\u8BF7\u5C3D\u53EF\u80FD\u8BE6\u7EC6\uFF1A\u4E3B\u4F53\u3001\u6587\u5B57\u3001\u6570\u5B57\u3001\u989C\u8272\u3001\u4F4D\u7F6E\u5173\u7CFB\u90FD\u4E0D\u8981\u9057\u6F0F\u3002\u5982\u6709\u6587\u5B57\u8BF7\u9010\u5B57\u8F6C\u5F55\u3002";
-  else if (detail === "low") suffix = "\n\n\u8BF7\u7528 2-3 \u53E5\u8BDD\u7B80\u8981\u6982\u62EC\u3002";
-  const extra2 = typeof promptTemplate === "string" && promptTemplate.trim().length > 0 ? "\n\n\u8865\u5145\u8981\u6C42\uFF1A" + promptTemplate.trim().slice(0, 500) : "";
-  return q + suffix + extra2;
 }
 
 // src/host/index.ts
 var name = "@dshp/vision-bridge";
 var inject = ["tools", "webServer", "llm"];
 var Config = ConfigSchema;
+var MAX_IMAGES = 4;
+var MAX_QUESTION = 4e3;
+var MAX_BODY = 64 * 1024;
+var ROUTE_PREFIX = "/ext/dshp-vision-bridge";
+function isRecord3(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function errorMessage(error) {
+  return error instanceof Error ? error.message : String(error);
+}
+function warn(message, error) {
+  try {
+    const reason = error === void 0 ? "" : "\uFF1A" + errorMessage(error);
+    console.warn("[dshp-vision-bridge] " + message + reason);
+  } catch {
+  }
+}
+function info(message) {
+  try {
+    console.info("[dshp-vision-bridge] " + message);
+  } catch {
+  }
+}
 function apply(ctx, config) {
   ctx.inject(["settings"], (sctx) => {
     try {
       sctx.effect(
         () => sctx.settings.configure({ auto: false }, ctx.fiber),
-        "dshp-vision-bridge: settings-page"
+        "dshp-vision-bridge: settings page"
       );
-    } catch (e) {
-      try {
-        console.warn("[dshp-vision-bridge] settings \u9875\u9762\u7B56\u7565\u6CE8\u518C\u5931\u8D25\uFF1A" + String(e?.message ?? e));
-      } catch {
-      }
+    } catch (error) {
+      warn("settings \u9875\u9762\u7B56\u7565\u6CE8\u518C\u5931\u8D25", error);
     }
   });
   function getConfig() {
@@ -1202,408 +1224,280 @@ function apply(ctx, config) {
     return {
       enabled: config.enabled.get() === true,
       primary: primary ? { provider: primary.provider, model: primary.model } : null,
-      fallback: fallback ? { provider: fallback.provider, model: fallback.model } : null,
-      detail: config.detail.get(),
-      maxImages: config.maxImages.get(),
-      promptTemplate: config.promptTemplate.get()
+      fallback: fallback ? { provider: fallback.provider, model: fallback.model } : null
     };
   }
-  async function updateConfig(patchObj) {
+  function bridgeArmed() {
+    const current = getConfig();
+    return current.enabled && current.primary !== null;
+  }
+  async function updateConfig(patch) {
     const settings = ctx.get("settings");
-    if (!settings)
-      throw new Error(
-        "settings \u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u65E0\u6CD5\u6301\u4E45\u5316\u5230 profile \u6761\u76EE config\uFF08\u8BF7\u91CD\u542F DSH \u786E\u8BA4\u8BBE\u7F6E\u670D\u52A1\u5DF2\u6302\u8F7D\uFF09"
-      );
-    await settings.update(NS, patchObj);
-  }
-  async function ensureDefaults(models) {
-    if (!Array.isArray(models) || models.length === 0) return;
-    const c = getConfig();
-    const patchObj = {};
-    let need = false;
-    const first = models[0];
-    if (!c.primary) {
-      patchObj["primary"] = { provider: first.provider, model: first.model };
-      need = true;
-    }
-    if (!c.fallback && models.length > 1) {
-      const second = models[1];
-      const primary = patchObj["primary"] ?? c.primary;
-      if (primary && (second.provider !== primary.provider || second.model !== primary.model)) {
-        patchObj["fallback"] = { provider: second.provider, model: second.model };
-        need = true;
-      }
-    }
-    if (need) {
-      try {
-        await updateConfig(patchObj);
-      } catch (e) {
-        try {
-          console.warn(
-            "[dshp-vision-bridge] ensureDefaults \u5199\u5165 profile \u6761\u76EE config \u5931\u8D25\uFF1A" + String(e?.message ?? e)
-          );
-        } catch {
-        }
-      }
-    }
-  }
-  let seq = 0;
-  function nextId(prefix) {
-    seq += 1;
-    return prefix + "-" + String(seq);
+    if (!settings) throw new Error("settings \u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u65E0\u6CD5\u4FDD\u5B58\u914D\u7F6E");
+    await settings.update(NS, patch);
   }
   const images = createImageCache();
   try {
     ctx.effect(
       () => ctx.on("agent/inbox/inserted", (payload) => {
         try {
-          if (!payload || typeof payload !== "object") return;
-          const p = payload;
-          const sid = sessionIdOf(p.agent);
-          const msg = p.message;
-          if (typeof sid !== "string" || !msg || typeof msg !== "object") return;
+          if (!isRecord3(payload)) return;
+          const sessionId = sessionIdOf(payload["agent"]);
+          const message = payload["message"];
+          if (!sessionId || !isRecord3(message)) return;
           const found = [];
-          walkBlocks(msg.content, found);
-          if (found.length > 0) images.push(sid, found);
+          walkBlocks(message["content"], found);
+          if (found.length > 0) images.push(sessionId, found);
         } catch {
         }
       }),
       "dshp-vision-bridge: cache inbox images"
     );
-  } catch {
+  } catch (error) {
+    warn("\u6CE8\u518C inbox \u56FE\u7247\u7F13\u5B58\u5931\u8D25", error);
   }
   try {
     ctx.effect(
       () => ctx.on("llm/stream", (options, next) => {
         try {
-          const sid = options?.sessionId;
-          const msgs = options?.messages;
-          if (typeof sid === "string" && Array.isArray(msgs)) {
-            const found = [];
-            for (const m of msgs) {
-              if (m && typeof m === "object") walkBlocks(m.content, found);
+          if (isRecord3(options)) {
+            const sessionId = options["sessionId"];
+            const messages = options["messages"];
+            if (typeof sessionId === "string" && Array.isArray(messages)) {
+              const found = [];
+              for (const message of messages) {
+                if (isRecord3(message)) walkBlocks(message["content"], found);
+              }
+              if (found.length > 0) images.push(sessionId, found);
             }
-            if (found.length > 0) images.push(sid, found);
           }
         } catch {
         }
         return next();
       }),
-      "dshp-vision-bridge: cache llm.stream images"
+      "dshp-vision-bridge: cache stream images"
     );
-  } catch {
+  } catch (error) {
+    warn("\u6CE8\u518C stream \u56FE\u7247\u7F13\u5B58\u5931\u8D25", error);
   }
-  function bridgeTakeoverArmed() {
-    const c = getConfig();
-    return c.enabled === true && c.primary !== null && typeof c.primary === "object";
-  }
-  function withBridgeImageCapability(info) {
-    if (!info || typeof info !== "object") return info;
-    const mods = info.inputModalities;
-    if (!Array.isArray(mods) || mods.indexOf("image") >= 0) return info;
-    return { ...info, inputModalities: [...mods, "image"] };
-  }
-  try {
-    const llmSvc = ctx.get("llm");
-    if (llmSvc && typeof llmSvc.resolveModelInfo === "function") {
-      const origResolve = llmSvc.resolveModelInfo.bind(llmSvc);
-      const patchedResolve = async (...args) => {
-        const info = await origResolve(...args);
-        try {
-          if (bridgeTakeoverArmed()) return withBridgeImageCapability(info);
-        } catch {
-        }
-        return info;
-      };
-      llmSvc.resolveModelInfo = patchedResolve;
+  const llm = ctx.get("llm");
+  const originalResolve = llm?.resolveModelInfo;
+  if (llm && typeof originalResolve === "function") {
+    const patchedResolve = async (provider, model, signal) => {
+      const result = await originalResolve.call(llm, provider, model, signal);
+      if (!bridgeArmed() || !isRecord3(result)) return result;
+      const modalities = result["inputModalities"];
+      if (!Array.isArray(modalities) || modalities.includes("image")) return result;
+      return { ...result, inputModalities: [...modalities, "image"] };
+    };
+    try {
+      llm.resolveModelInfo = patchedResolve;
       ctx.effect(
         () => () => {
           try {
-            if (llmSvc.resolveModelInfo === patchedResolve) llmSvc.resolveModelInfo = origResolve;
+            if (llm.resolveModelInfo === patchedResolve) llm.resolveModelInfo = originalResolve;
           } catch {
           }
         },
         "dshp-vision-bridge: admission takeover"
       );
-      try {
-        console.info(
-          "[dshp-vision-bridge] admission takeover armed (text-only models may send images while bridge is enabled with a primary vision model)"
-        );
-      } catch {
-      }
-    } else {
-      try {
-        console.warn(
-          "[dshp-vision-bridge] llm service unavailable, admission takeover skipped (text-only models still cannot send images)"
-        );
-      } catch {
-      }
+      info("\u53D1\u9001\u95E8\u7981\u5DF2\u63A5\u7BA1\uFF1A\u542F\u7528\u5E76\u9009\u597D\u4E3B\u6A21\u578B\u540E\uFF0C\u7EAF\u6587\u672C\u6A21\u578B\u53EF\u76F4\u63A5\u53D1\u9001\u56FE\u7247");
+    } catch (error) {
+      warn("\u63A5\u7BA1\u53D1\u9001\u95E8\u7981\u5931\u8D25", error);
     }
-  } catch {
+  } else {
+    warn("llm \u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u53D1\u9001\u95E8\u7981\u672A\u63A5\u7BA1");
   }
   try {
-    const sys = ctx.get("systemPrompt");
-    if (sys && typeof sys.section === "function") {
+    const systemPrompt = ctx.get("systemPrompt");
+    if (systemPrompt && typeof systemPrompt.section === "function") {
       ctx.effect(
-        () => sys.section({
+        () => systemPrompt.section({
           name: "dshp-vision-bridge",
           order: 80,
-          text: "\u89C6\u89C9\u80FD\u529B\u8BF4\u660E\uFF1A\u4F60\u662F\u7EAF\u6587\u672C\u6A21\u578B\uFF0C\u65E0\u6CD5\u76F4\u63A5\u770B\u56FE\u3002\u5F53\u7528\u6237\u6D88\u606F\u4E2D\u51FA\u73B0\u201C[image omitted because this model accepts text only\u201D\u5360\u4F4D\u7B26\u65F6\uFF0C\u8BF4\u660E\u672C\u8F6E\u9644\u5E26\u4E86\u56FE\u7247\uFF0C\u4F60\u5FC5\u987B\u8C03\u7528 vision_describe \u5DE5\u5177\u6765\u8BC6\u522B\uFF08\u4E0D\u8981\u731C\u6D4B\u56FE\u7247\u5185\u5BB9\uFF0C\u4E0D\u8981\u8BA9\u7528\u6237\u6362\u6A21\u578B\uFF09\u3002\u53C2\u6570 question \u5199\u6E05\u4F60\u9700\u8981\u4ECE\u56FE\u7247\u4E2D\u83B7\u5F97\u4EC0\u4E48\u4FE1\u606F\uFF1B\u5982\u6709\u591A\u4E2A\u56FE\u7247\u53EF\u7528 image_hint \u6307\u5B9A\uFF08\u9644\u4EF6 sha \u524D\u7F00\u6216\u4ECE 1 \u5F00\u59CB\u7684\u5E8F\u53F7\uFF09\uFF0C\u4E0D\u786E\u5B9A\u5C31\u7559\u7A7A\u5206\u6790\u5168\u90E8\u56FE\u7247\u3002\u5DE5\u5177\u4F1A\u81EA\u52A8\u9009\u7528\u8BBE\u7F6E \u2192 \u89C6\u89C9\u6A21\u578B \u91CC\u914D\u7F6E\u7684\u4E3B\u6A21\u578B\uFF0C\u5931\u8D25\u65F6\u7528\u5907\u7528\u6A21\u578B\u91CD\u8BD5\u3002"
+          text: "\u89C6\u89C9\u80FD\u529B\uFF1A\u4F60\u662F\u7EAF\u6587\u672C\u6A21\u578B\uFF0C\u4E0D\u80FD\u76F4\u63A5\u770B\u56FE\u3002\u7528\u6237\u6D88\u606F\u91CC\u51FA\u73B0\u201C[image omitted because this model accepts text only; attachment sha256:\u2026]\u201D\u5360\u4F4D\u7B26\u65F6\uFF0C\u8BF4\u660E\u672C\u8F6E\u6709\u56FE\u7247\uFF0C\u5FC5\u987B\u8C03\u7528 vision_describe \u83B7\u53D6\u5185\u5BB9\uFF0C\u4E0D\u8981\u731C\u6D4B\u56FE\u7247\u5185\u5BB9\uFF0C\u4E5F\u4E0D\u8981\u8BA9\u7528\u6237\u6362\u6A21\u578B\u3002question \u7531\u4F60\u7ED3\u5408\u5F53\u524D\u5BF9\u8BDD\u4E0A\u4E0B\u6587\u751F\u6210\uFF0C\u5199\u6E05\u4F60\u771F\u6B63\u60F3\u4ECE\u56FE\u7247\u786E\u8BA4\u7684\u5177\u4F53\u5185\u5BB9\uFF08\u4F8B\u5982\u67D0\u884C\u62A5\u9519\u3001\u67D0\u4E2A\u6309\u94AE\u3001\u67D0\u6BB5\u6587\u5B57\uFF09\uFF0C\u4E0D\u8981\u53EA\u5199\u201C\u63CF\u8FF0\u8FD9\u5F20\u56FE\u7247\u201D\u3002\u63D2\u4EF6\u4F1A\u628A question \u539F\u6837\u53D1\u7ED9\u89C6\u89C9\u6A21\u578B\uFF0C\u4E0D\u8FFD\u52A0\u56FA\u5B9A\u63D0\u793A\u8BCD\u3002\u591A\u56FE\u65F6\u53EF\u7528 image \u6307\u5B9A\u4ECE 1 \u5F00\u59CB\u7684\u5E8F\u53F7\u3002\u6CA1\u6709\u5360\u4F4D\u7B26\u65F6\u4E0D\u8981\u8C03\u7528\u3002\u5DE5\u5177\u4F1A\u81EA\u52A8\u4F7F\u7528\u8BBE\u7F6E \u2192 \u89C6\u89C9\u6A21\u578B \u4E2D\u7684\u4E3B\u6A21\u578B\uFF0C\u5931\u8D25\u65F6\u7528\u5907\u7528\u6A21\u578B\u91CD\u8BD5\u3002"
         }),
         "dshp-vision-bridge: prompt section"
       );
     }
-  } catch {
+  } catch (error) {
+    warn("\u6CE8\u518C\u7CFB\u7EDF\u63D0\u793A\u5931\u8D25", error);
   }
   try {
-    ctx.tools.register({
-      name: "vision_describe",
-      description: "\u5F53\u4F60\u65E0\u6CD5\u76F4\u63A5\u770B\u5230\u56FE\u7247\u65F6\u8C03\u7528\uFF1A\u628A\u7528\u6237\u672C\u8F6E\u7684\u56FE\u7247\u4EA4\u7ED9\u89C6\u89C9\u6A21\u578B\u53BB\u8BC6\u522B\uFF0C\u8FD4\u56DE\u4E2D\u6587\u63CF\u8FF0\u3002\u770B\u5230 [image omitted because this model accepts text only] \u5360\u4F4D\u7B26\u65F6\u5FC5\u987B\u7528\u5B83\uFF0C\u4E0D\u8981\u731C\u56FE\u3002",
-      parameters: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          question: {
-            type: "string",
-            description: "\u4F60\u60F3\u4ECE\u56FE\u7247\u4E2D\u77E5\u9053\u4EC0\u4E48\uFF0C\u4F8B\u5982\u201C\u63CF\u8FF0\u8FD9\u5F20\u622A\u56FE\u91CC\u7684\u62A5\u9519\u4FE1\u606F\u201D\u6216\u201C\u8F6C\u5F55\u56FE\u7247\u4E2D\u7684\u5168\u90E8\u6587\u5B57\u201D\u3002"
-          },
-          image_hint: {
-            type: "string",
-            description: "\u53EF\u9009\uFF1A\u53EA\u5206\u6790\u67D0\u4E00\u5F20\u56FE\u3002\u586B\u9644\u4EF6 sha \u524D\u7F00\uFF08\u5360\u4F4D\u7B26\u91CC\u7684\u90A3\u4E32\u5B57\u7B26\uFF09\u6216\u4ECE 1 \u5F00\u59CB\u7684\u5E8F\u53F7\uFF1B\u7559\u7A7A\u5219\u5206\u6790\u672C\u8F6E\u5168\u90E8\u56FE\u7247\u3002"
-          },
-          detail: {
-            type: "string",
-            enum: ["auto", "low", "high"],
-            description: "\u53EF\u9009\uFF1Aauto \u5E38\u89C4\u63CF\u8FF0\uFF0Clow \u7B80\u8981\u6982\u62EC\uFF0Chigh \u9010\u5B57\u8F6C\u5F55\u7EA7\u8BE6\u7EC6\u3002\u4E0D\u586B\u7528\u8BBE\u7F6E\u9875\u7684\u9ED8\u8BA4\u503C\u3002"
-          }
-        },
-        required: ["question"]
-      },
-      output: {
-        schema: {
+    ctx.effect(
+      () => ctx.tools.register({
+        name: "vision_describe",
+        description: "\u628A\u7528\u6237\u672C\u8F6E\u9644\u5E26\u7684\u56FE\u7247\u4EA4\u7ED9\u89C6\u89C9\u6A21\u578B\u8BC6\u522B\u3002\u770B\u5230 [image omitted because this model accepts text only; attachment sha256:\u2026] \u5360\u4F4D\u7B26\u65F6\u5FC5\u987B\u8C03\u7528\uFF0C\u4E0D\u8981\u731C\u56FE\u3002question \u7531\u4F60\u7ED3\u5408\u5F53\u524D\u5BF9\u8BDD\u751F\u6210\uFF0C\u63D2\u4EF6\u4F1A\u539F\u6837\u8F6C\u7ED9\u89C6\u89C9\u6A21\u578B\u3002",
+        parameters: {
           type: "object",
           additionalProperties: false,
           properties: {
-            description: { type: "string" },
-            model: { type: "string" },
-            fallback_used: { type: "boolean" }
+            question: {
+              type: "string",
+              description: "\u7ED3\u5408\u5F53\u524D\u5BF9\u8BDD\u4E0A\u4E0B\u6587\uFF0C\u5199\u6E05\u4F60\u60F3\u4ECE\u56FE\u7247\u4E2D\u786E\u8BA4\u7684\u5177\u4F53\u5185\u5BB9\uFF0C\u4F8B\u5982\u201C\u622A\u56FE\u7B2C\u4E09\u884C\u7684\u62A5\u9519\u662F\u4EC0\u4E48\u201D\u6216\u201C\u9010\u5B57\u8F6C\u5F55\u8FD9\u5F20\u56FE\u91CC\u7684\u6587\u5B57\u201D\u3002\u63D2\u4EF6\u4F1A\u539F\u6837\u53D1\u7ED9\u89C6\u89C9\u6A21\u578B\uFF0C\u4E0D\u8FFD\u52A0\u56FA\u5B9A\u63D0\u793A\u8BCD\u3002"
+            },
+            image: {
+              type: "integer",
+              minimum: 1,
+              description: "\u53EF\u9009\uFF1A\u53EA\u770B\u7B2C\u51E0\u5F20\u56FE\uFF08\u4ECE 1 \u5F00\u59CB\uFF0C\u591A\u56FE\u65F6\u7528\uFF09\u3002\u7559\u7A7A\u5219\u5206\u6790\u672C\u8F6E\u6700\u8FD1 4 \u5F20\u56FE\u7247\u3002"
+            }
           },
-          required: ["description", "model", "fallback_used"]
+          required: ["question"]
         },
-        render: (_args, value) => [
-          { type: "text", text: String(value.description) }
-        ]
-      },
-      isConcurrencySafe: () => false,
-      async execute(args, exec) {
-        const cfg = getConfig();
-        if (cfg.enabled !== true) throw new Error("\u89C6\u89C9\u6865\u63A5\u5DF2\u5728\u8BBE\u7F6E\u9875\u5173\u95ED\uFF0C\u8BF7\u5148\u542F\u7528\u540E\u518D\u8C03\u7528");
-        const q = typeof args?.["question"] === "string" ? args["question"].trim() : "";
-        if (!q) throw new Error("question \u4E0D\u80FD\u4E3A\u7A7A\uFF1A\u8BF7\u8BF4\u660E\u4F60\u60F3\u4ECE\u56FE\u7247\u4E2D\u83B7\u5F97\u4EC0\u4E48\u4FE1\u606F");
-        const hint = typeof args?.["image_hint"] === "string" ? args["image_hint"].trim() : "";
-        let detail;
-        const argDetail = args?.["detail"];
-        if (argDetail === "low" || argDetail === "high") detail = argDetail;
-        else detail = cfg.detail === "low" || cfg.detail === "high" ? cfg.detail : "auto";
-        let sid;
-        try {
-          if (exec?.agent) sid = sessionIdOf(exec.agent);
-        } catch {
-        }
-        const cached = typeof sid === "string" && images.get(sid) || [];
-        let list = cached.slice();
-        if (hint) {
-          const h = hint.toLowerCase();
-          const bySha = list.filter((r) => r.attachmentId.toLowerCase().indexOf(h) >= 0);
-          if (bySha.length > 0) {
-            list = bySha;
+        output: {
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              description: { type: "string" },
+              model: { type: "string" }
+            },
+            required: ["description", "model"]
+          },
+          render: (_args, value) => [
+            { type: "text", text: String(value.description) }
+          ]
+        },
+        isConcurrencySafe: () => true,
+        async execute(args, exec) {
+          const current = getConfig();
+          if (!current.enabled) {
+            throw new Error("\u89C6\u89C9\u6865\u63A5\u5DF2\u5728 \u8BBE\u7F6E \u2192 \u89C6\u89C9\u6A21\u578B \u4E2D\u5173\u95ED\uFF0C\u8BF7\u5148\u542F\u7528");
+          }
+          const input = isRecord3(args) ? args : {};
+          const question = typeof input["question"] === "string" ? input["question"].trim() : "";
+          if (!question) {
+            throw new Error("question \u4E0D\u80FD\u4E3A\u7A7A\uFF1A\u8BF7\u7ED3\u5408\u4E0A\u4E0B\u6587\u8BF4\u660E\u4F60\u60F3\u4ECE\u56FE\u7247\u4E2D\u786E\u8BA4\u4EC0\u4E48");
+          }
+          const index = parseImageIndex(input["image"]);
+          const sessionId = typeof exec?.agent?.id === "string" ? exec.agent.id : void 0;
+          const cached = sessionId ? images.get(sessionId) : [];
+          let selected;
+          if (index !== null) {
+            const one = cached[index - 1];
+            if (!one) throw new Error(`\u7B2C ${index} \u5F20\u56FE\u7247\u4E0D\u5B58\u5728\uFF1A\u672C\u8F6E\u5171 ${cached.length} \u5F20\u56FE\u7247`);
+            selected = [one];
           } else {
-            const n = parseInt(h, 10);
-            if (!Number.isNaN(n) && n >= 1 && n <= list.length) {
-              const one = list[n - 1];
-              list = [one];
-            }
+            selected = cached.slice(-MAX_IMAGES);
           }
-        }
-        const maxN = typeof cfg.maxImages === "number" && cfg.maxImages >= 1 ? Math.min(cfg.maxImages, 8) : 4;
-        if (list.length > maxN) list = list.slice(list.length - maxN);
-        if (list.length === 0) {
-          throw new Error(
-            "\u672C\u8F6E\u6CA1\u6709\u627E\u5230\u53EF\u7528\u7684\u56FE\u7247\uFF1A\u8BF7\u786E\u8BA4\u56FE\u7247\u5DF2\u4F5C\u4E3A\u9644\u4EF6\u53D1\u9001\uFF08\u91CD\u8BD5\u4E00\u6B21\uFF09\uFF0C\u6216\u628A\u5360\u4F4D\u7B26\u91CC\u7684 sha \u524D\u7F00\u586B\u8FDB image_hint"
+          if (selected.length === 0) {
+            throw new Error("\u672C\u8F6E\u6CA1\u6709\u627E\u5230\u53EF\u7528\u7684\u56FE\u7247\uFF1A\u8BF7\u786E\u8BA4\u56FE\u7247\u5DF2\u4F5C\u4E3A\u9644\u4EF6\u53D1\u9001\uFF0C\u6216\u91CD\u8BD5\u4E00\u6B21");
+          }
+          const answer = await describeWithFallback(
+            ctx,
+            current,
+            selected,
+            question.slice(0, MAX_QUESTION),
+            exec?.signal,
+            sessionId
           );
-        }
-        const question = buildQuestion(q, detail, cfg.promptTemplate);
-        const signal = exec?.signal;
-        const res = await describeWithFallback(imagesCtx(), cfg, list, question, signal, sid, nextId);
-        return {
-          description: res.text,
-          model: res.route.provider + "/" + res.route.model,
-          fallback_used: res.fallbackUsed === true
-        };
-        function imagesCtx() {
-          return ctx;
-        }
-      }
-    });
-  } catch (e) {
-    try {
-      console.error("[dshp-vision-bridge] register tool failed: " + String(e?.message ?? e));
-    } catch {
-    }
-  }
-  ctx.effect(
-    () => ctx.webServer.register({
-      kind: "exact",
-      path: "/ext/dshp-vision-bridge/state",
-      handler: async (_req, res) => {
-        const req = _req;
-        if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
-        try {
-          const models = await listVisionModels(ctx);
-          await ensureDefaults(models);
-          return json(res, 200, {
-            ok: true,
-            models,
-            config: getConfig(),
-            visionModelCount: models.length,
-            admissionTakeover: bridgeTakeoverArmed()
-          });
-        } catch (e) {
-          return json(res, 200, { ok: false, error: String(e?.message ?? e) });
-        }
-      }
-    }),
-    "dshp-vision-bridge: state route"
-  );
-  ctx.effect(
-    () => ctx.webServer.register({
-      kind: "exact",
-      path: "/ext/dshp-vision-bridge/check",
-      handler: async (_req, res) => {
-        const req = _req;
-        if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
-        let llm = null;
-        try {
-          llm = ctx.get("llm");
-        } catch {
-          llm = null;
-        }
-        if (!llm) {
-          return json(res, 200, {
-            ok: false,
-            error: "llm \u670D\u52A1\u4E0D\u53EF\u7528",
-            primary: { ok: false, message: "llm \u670D\u52A1\u4E0D\u53EF\u7528" },
-            fallback: { ok: false, message: "llm \u670D\u52A1\u4E0D\u53EF\u7528" }
-          });
-        }
-        async function probe(route) {
-          if (!route) return { ok: false, message: "\u672A\u914D\u7F6E" };
-          try {
-            if (typeof llm.resolveModelInfo === "function") {
-              await llm.resolveModelInfo(route.provider, route.model);
-              return { ok: true, message: route.provider + "/" + route.model + " \u8DEF\u7531\u53EF\u89E3\u6790" };
-            }
-            const ps = llm.listProviders() ?? [];
-            const has = Array.isArray(ps) && ps.some((p) => p?.id === route.provider);
-            return has ? {
-              ok: true,
-              message: route.provider + "/" + route.model + "\uFF08\u63D0\u4F9B\u65B9\u5DF2\u6CE8\u518C\uFF0C\u672A\u505A\u6A21\u578B\u7EA7\u6821\u9A8C\uFF09"
-            } : { ok: false, message: "\u63D0\u4F9B\u65B9 " + route.provider + " \u672A\u6CE8\u518C" };
-          } catch (e) {
-            return { ok: false, message: String(e?.message ?? e).slice(0, 300) };
-          }
-        }
-        const cfg = getConfig();
-        return json(res, 200, {
-          ok: true,
-          primary: await probe(cfg.primary),
-          fallback: await probe(cfg.fallback)
-        });
-      }
-    }),
-    "dshp-vision-bridge: check route"
-  );
-  ctx.effect(
-    () => ctx.webServer.register({
-      kind: "exact",
-      path: "/ext/dshp-vision-bridge/config",
-      handler: async (_req, res) => {
-        const req = _req;
-        if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
-        if (req.method !== "POST") return json(res, 405, { ok: false, error: "method not allowed" });
-        let body = {};
-        try {
-          body = JSON.parse(await readBody(req) || "{}");
-        } catch {
-          return json(res, 200, { ok: false, error: "\u8BF7\u6C42\u4F53\u4E0D\u662F\u5408\u6CD5 JSON" });
-        }
-        const a = body && typeof body === "object" && !Array.isArray(body) ? body : {};
-        function asRoute(v) {
-          if (!v || typeof v !== "object") return null;
-          const r = v;
-          if (typeof r["provider"] !== "string" || typeof r["model"] !== "string") return null;
-          if (!r["provider"] || !r["model"]) return null;
           return {
-            provider: r["provider"].slice(0, 120),
-            model: r["model"].slice(0, 200)
+            description: answer.text,
+            model: answer.route.provider + "/" + answer.route.model
           };
         }
-        try {
-          const patchObj = {};
-          let hasPatch = false;
-          if (Object.hasOwn(a, "primary")) {
-            if (a["primary"] === null) {
-              patchObj["primary"] = null;
-              hasPatch = true;
-            } else {
-              const p = asRoute(a["primary"]);
-              if (!p) throw new Error("primary \u975E\u6CD5\uFF0C\u5E94\u4E3A {provider, model} \u6216 null");
-              patchObj["primary"] = p;
-              hasPatch = true;
-            }
-          }
-          if (Object.hasOwn(a, "fallback")) {
-            if (a["fallback"] === null) {
-              patchObj["fallback"] = null;
-              hasPatch = true;
-            } else {
-              const f = asRoute(a["fallback"]);
-              if (!f) throw new Error("fallback \u975E\u6CD5\uFF0C\u5E94\u4E3A {provider, model} \u6216 null");
-              patchObj["fallback"] = f;
-              hasPatch = true;
-            }
-          }
-          if (Object.hasOwn(a, "enabled")) {
-            patchObj["enabled"] = a["enabled"] === true;
-            hasPatch = true;
-          }
-          if (Object.hasOwn(a, "detail")) {
-            if (a["detail"] === "low" || a["detail"] === "high" || a["detail"] === "auto") {
-              patchObj["detail"] = a["detail"];
-              hasPatch = true;
-            } else throw new Error("detail \u975E\u6CD5\uFF0C\u5E94\u4E3A auto/low/high");
-          }
-          if (Object.hasOwn(a, "maxImages")) {
-            const n = a["maxImages"];
-            if (typeof n !== "number" || !(n >= 1 && n <= 8))
-              throw new Error("maxImages \u975E\u6CD5\uFF0C\u5E94\u4E3A 1-8 \u7684\u6570\u5B57");
-            patchObj["maxImages"] = Math.floor(n);
-            hasPatch = true;
-          }
-          if (Object.hasOwn(a, "promptTemplate")) {
-            if (typeof a["promptTemplate"] !== "string") throw new Error("promptTemplate \u975E\u6CD5\uFF0C\u5E94\u4E3A\u5B57\u7B26\u4E32");
-            patchObj["promptTemplate"] = a["promptTemplate"].slice(0, 2e3);
-            hasPatch = true;
-          }
-          if (hasPatch) await updateConfig(patchObj);
-          return json(res, 200, { ok: true, config: getConfig() });
-        } catch (e) {
-          return json(res, 200, { ok: false, error: String(e?.message ?? e) });
-        }
+      }),
+      "dshp-vision-bridge: vision_describe tool"
+    );
+  } catch (error) {
+    warn("\u6CE8\u518C vision_describe \u5DE5\u5177\u5931\u8D25", error);
+  }
+  function registerRoute(path, handler) {
+    try {
+      ctx.effect(
+        () => ctx.webServer.register({ kind: "exact", path, handler }),
+        `dshp-vision-bridge: ${path} route`
+      );
+    } catch (error) {
+      warn(`\u6CE8\u518C\u8DEF\u7531 ${path} \u5931\u8D25`, error);
+    }
+  }
+  registerRoute(ROUTE_PREFIX + "/state", async (req, res) => {
+    if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
+    try {
+      return json(res, 200, {
+        ok: true,
+        models: await listVisionModels(ctx),
+        config: getConfig()
+      });
+    } catch (error) {
+      return json(res, 200, { ok: false, error: errorMessage(error) });
+    }
+  });
+  registerRoute(ROUTE_PREFIX + "/config", async (req, res) => {
+    if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
+    if (req.method !== "POST") return json(res, 405, { ok: false, error: "method not allowed" });
+    let body;
+    try {
+      body = JSON.parse(await readBody(req, MAX_BODY) || "{}");
+    } catch {
+      return json(res, 200, { ok: false, error: "\u8BF7\u6C42\u4F53\u4E0D\u662F\u5408\u6CD5 JSON" });
+    }
+    if (!isRecord3(body)) return json(res, 200, { ok: false, error: "\u8BF7\u6C42\u4F53\u5FC5\u987B\u662F\u5BF9\u8C61" });
+    try {
+      const patch = parseConfigPatch(body);
+      if (Object.keys(patch).length > 0) await updateConfig(patch);
+      return json(res, 200, { ok: true, config: getConfig() });
+    } catch (error) {
+      return json(res, 200, { ok: false, error: errorMessage(error) });
+    }
+  });
+  registerRoute(ROUTE_PREFIX + "/check", async (req, res) => {
+    if (!sameOrigin(req)) return json(res, 403, { ok: false, error: "forbidden" });
+    const current = getConfig();
+    return json(res, 200, {
+      ok: true,
+      primary: await probeRoute(current.primary),
+      fallback: await probeRoute(current.fallback)
+    });
+  });
+  async function probeRoute(route) {
+    if (!route) return { ok: false, message: "\u672A\u914D\u7F6E" };
+    if (!llm || typeof originalResolve !== "function") {
+      return { ok: false, message: "llm \u670D\u52A1\u4E0D\u53EF\u7528" };
+    }
+    try {
+      const result = await originalResolve.call(llm, route.provider, route.model);
+      const label = route.provider + "/" + route.model;
+      if (!isRecord3(result)) return { ok: true, message: label + " \u53EF\u89E3\u6790" };
+      const modalities = result["inputModalities"];
+      if (Array.isArray(modalities) && !modalities.includes("image")) {
+        return { ok: false, message: label + " \u672A\u58F0\u660E image \u8F93\u5165" };
       }
-    }),
-    "dshp-vision-bridge: config route"
-  );
+      return { ok: true, message: label + " \u53EF\u7528" };
+    } catch (error) {
+      return { ok: false, message: errorMessage(error).slice(0, 300) };
+    }
+  }
+}
+function parseImageIndex(value) {
+  if (value === void 0 || value === null) return null;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 1) {
+    throw new Error("image \u5FC5\u987B\u662F\u4ECE 1 \u5F00\u59CB\u7684\u6574\u6570");
+  }
+  return value;
+}
+var CONFIG_FIELDS = /* @__PURE__ */ new Set(["enabled", "primary", "fallback"]);
+function parseConfigPatch(body) {
+  for (const key of Object.keys(body)) {
+    if (!CONFIG_FIELDS.has(key)) throw new Error(`\u672A\u77E5\u914D\u7F6E\u5B57\u6BB5\uFF1A${key}`);
+  }
+  const patch = {};
+  if (Object.hasOwn(body, "enabled")) {
+    if (typeof body["enabled"] !== "boolean") throw new Error("enabled \u5FC5\u987B\u662F\u5E03\u5C14\u503C");
+    patch["enabled"] = body["enabled"];
+  }
+  if (Object.hasOwn(body, "primary")) patch["primary"] = parseRoute(body["primary"], "primary");
+  if (Object.hasOwn(body, "fallback")) patch["fallback"] = parseRoute(body["fallback"], "fallback");
+  return patch;
+}
+function parseRoute(value, field) {
+  if (value === null) return null;
+  if (!isRecord3(value)) throw new Error(`${field} \u5FC5\u987B\u662F {provider, model} \u6216 null`);
+  const provider = typeof value["provider"] === "string" ? value["provider"].trim() : "";
+  const model = typeof value["model"] === "string" ? value["model"].trim() : "";
+  if (!provider || !model) throw new Error(`${field} \u7684 provider/model \u4E0D\u80FD\u4E3A\u7A7A`);
+  return { provider: provider.slice(0, 120), model: model.slice(0, 200) };
 }
 
 export { Config, ConfigSchema, NS, apply, inject, name };

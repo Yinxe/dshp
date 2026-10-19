@@ -69,14 +69,14 @@ ctx.tools.register({
   description: '…何时必须调用…',       // 首句写触发条件（含占位符原文），模型靠它决策
   parameters: { type: 'object', additionalProperties: false, properties: {...}, required: [...] },
   output: { schema: {...}, render: (_args, value) => [{ type: 'text', text: String(...) }] },
-  isConcurrencySafe: () => false,     // 除非证明无共享可变状态，否则 false
+  isConcurrencySafe: () => true,      // 只有证明无共享可变状态才 true（vision-bridge 只读缓存）
   async execute(args, exec) { /* 校验 → 取缓存 → 截尾 → 调用 → 返回最小对象 */ },
 });
 ```
 
-- `description` 必须包含触发信号原文（如占位符 `[image omitted because this model accepts text only]`）+「不要猜图」禁令，否则纯文本模型不会调。
-- `parameters`/`output.schema` 都要 `additionalProperties: false` + `required` 显式列；输出只返回契约字段（`{ description, model, fallback_used }`），`render` 转纯文本块。
-- `execute` 内（以 vision-bridge 为例）：先判总开关 → 校验必填 → `sessionIdOf(exec.agent)` 取会话 → hint 过滤（sha 前缀优先、序号其次，非法 hint 忽略不抛）→ `maxImages` 截尾取最新 → 主→备 fallback（备与主相同则跳过）→ 空结果/调用失败抛中文 Error。
+- `description` 必须包含触发信号原文（如占位符 `[image omitted because this model accepts text only; attachment sha256:…]`）+「不要猜图」禁令，否则纯文本模型不会调。
+- `parameters`/`output.schema` 都要 `additionalProperties: false` + `required` 显式列；输出只返回契约字段（`{ description, model }`），`render` 转纯文本块。
+- `execute` 内（以 vision-bridge 为例）：先判总开关 → 校验必填 → 取 `exec.agent.id` 会话 → `image` 序号过滤（非法抛中文 Error）→ 无序号时取最近 4 张 → `question` 原样透传（只 trim + 截断，不拼固定后缀）→ 主→备 fallback（备与主相同则跳过）→ 空结果/调用失败抛中文 Error。
 - 图片/附件只存 **owned copy**（`attachmentId/mediaType/bytes/width/height/name`），会话级 LRU（每会话 ≤20 张、全内存 ≤50 会话，超限丢最旧）。不存原图 bytes，不落盘。
 - 监听补缓存双通道：`agent/inbox/inserted`（同步扫 `message.content`）+ `llm/stream`（扫 `messages[].content`，记得 `return next()`）。扫块递归要处理 `tool-result` 嵌套（照抄 vision-bridge `walkBlocks`）。
 - 结果元数据想要差异卡片（`meta.diffs`）：在 `output.presentationMeta(args, value)` 里投影（见 file-change-viewer `src/host/patch-tool.ts`）。

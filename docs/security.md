@@ -3,9 +3,9 @@
 > 本文承接旧 AGENT.md §11（安全规范）的完整细节。规则版总纲见[仓库根 AGENT.md](../AGENT.md)。
 
 - 同源：所有 `/ext/*` 先 `sameOrigin`；state 接口 `no-store`。
-- 输入：路由 body 限 1MB；一切字符串入库前截断；`maxImages` 类数字夹范围；非法 hint/补丁宁可忽略/报错，不可拼进 prompt 或文件名。
+- 输入：路由 body 限 64KB；一切字符串入库前截断；数字字段夹范围（如 `image` 序号 ≥1）；非法补丁宁可报错，不可拼进 prompt 或文件名。
 - 密钥：**不许在代码/注释里放任何密钥、token、内网地址**；插件配置只存路由选择（provider/model），不存口令。密钥引用（`$NAME`）经 credentials 服务解析，不进持久化配置。
-- 最小暴露：缓存只存 leaf owned copy；tool 输出只给契约字段（如 `{ description, model, fallback_used }`）；日志不打图片内容、prompt 全文、用户原文（最多打长度/计数）。
+- 最小暴露：缓存只存 leaf owned copy；tool 输出只给契约字段（如 `{ description, model }`）；日志不打图片内容、prompt 全文、用户原文（最多打长度/计数）。
 - 卸载干净：`ctx.effect` 清理一切（样式、路由、patch、section）；**不在 DSH 目录外写任何文件**（设置只进 profile 条目 `config:` 的 NS，见 docs/settings.md）。
 
 ## 需要写用户文件的插件：额外的写路径防护

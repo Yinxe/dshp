@@ -1,267 +1,262 @@
 /**
- * 视觉模型发现 + 调用 + fallback
+ * 视觉模型发现、调用与主备重试。
  *
  * 候选来源（并集去重，按 provider/model 字典序）：
- *  1. settings 中 llm-pi-ai / llm-deepseek 命名空间下 providers[].models[] 里 input 含 image 的
- *  2. llm.listProviders() + llm.listModels(provider) 里 inputModalities 含 image 的
+ *  1. `llm.listConfigurableProviders()` + `settings.describe()`：已配置但可能未激活的 provider
+ *  2. `llm.listProviders()` + `llm.listModels(provider)`：当前运行时可调用的 provider
+ *
+ * 0.2.x 的 settings 服务不再提供 `get(ns)`；读配置统一走 `describe()`，按
+ * `settingsNs` + `settingsPath` 定位 provider profile。
  */
 import type {
-  AnyLlm,
-  AnySettings,
+  AnyCtx,
   CandidateModel,
-  Detail,
   ImageRef,
+  LlmService,
   PluginConfig,
+  SettingsService,
   VisionRoute,
 } from './types.js';
 
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return v !== null && typeof v === 'object' && !Array.isArray(v);
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-export function sameRoute(a: VisionRoute | null, b: VisionRoute | null): boolean {
-  if (!a || !b) return false;
-  return a.provider === b.provider && a.model === b.model;
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
-interface SectionModel {
-  provider: string;
-  model: string;
-  name: string;
+function displayName(value: unknown, fallback: string): string {
+  return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 
-function candidatesFromSection(sec: unknown): SectionModel[] {
-  const out: SectionModel[] = [];
-  if (!isRecord(sec)) return out;
-  const providers = sec['providers'];
-  if (!isRecord(providers)) return out;
-  for (const prov of Object.keys(providers)) {
-    const prof = providers[prov];
-    if (!isRecord(prof)) continue;
-    const models = prof['models'];
-    if (!Array.isArray(models)) continue;
-    for (const m of models) {
-      if (!isRecord(m) || typeof m['id'] !== 'string' || (m['id'] as string).length === 0) continue;
-      const input = m['input'];
-      if (!Array.isArray(input) || (input as unknown[]).indexOf('image') < 0) continue;
-      out.push({
-        provider: prov,
-        model: m['id'] as string,
-        name:
-          typeof m['name'] === 'string' && (m['name'] as string).length > 0
-            ? (m['name'] as string)
-            : (m['id'] as string),
-      });
+function getPath(value: unknown, path: readonly string[]): unknown {
+  let current = value;
+  for (const key of path) {
+    if (!isRecord(current)) return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
+function imageModalities(value: unknown): unknown[] | null {
+  const modalities = isRecord(value) ? value['input'] : undefined;
+  if (Array.isArray(modalities)) return modalities;
+  const fallback = isRecord(value) ? value['inputModalities'] : undefined;
+  return Array.isArray(fallback) ? fallback : null;
+}
+
+/** 从 settings 里读已配置的视觉模型（不依赖具体 llm 插件的命名空间）。 */
+function modelsFromSettings(settings: SettingsService, llm: LlmService): CandidateModel[] {
+  if (typeof llm.listConfigurableProviders !== 'function') return [];
+  let entries: unknown;
+  try {
+    entries = llm.listConfigurableProviders();
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(entries) || entries.length === 0) return [];
+
+  let descriptors: unknown;
+  try {
+    descriptors = settings.describe({ redactSecrets: true });
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(descriptors)) return [];
+
+  const out: CandidateModel[] = [];
+  for (const entry of entries) {
+    if (!isRecord(entry)) continue;
+    const provider = entry['provider'];
+    const ns = entry['settingsNs'];
+    const path = entry['settingsPath'];
+    if (typeof provider !== 'string' || typeof ns !== 'string' || !Array.isArray(path)) continue;
+    const descriptor = descriptors.find((item) => isRecord(item) && item['ns'] === ns);
+    if (!isRecord(descriptor)) continue;
+    const keys = path.filter((key): key is string => typeof key === 'string');
+    const profile = getPath(descriptor['value'], keys);
+    if (!isRecord(profile) || !Array.isArray(profile['models'])) continue;
+    for (const model of profile['models']) {
+      if (!isRecord(model)) continue;
+      const id = model['id'];
+      if (typeof id !== 'string' || id.length === 0) continue;
+      const modalities = imageModalities(model);
+      if (!modalities || !modalities.includes('image')) continue;
+      out.push({ provider, model: id, name: displayName(model['name'], id) });
     }
   }
   return out;
 }
 
-export async function listVisionModels(ctx: {
-  get: (k: string) => AnySettings | AnyLlm;
-}): Promise<CandidateModel[]> {
-  const merged: CandidateModel[] = [];
-  const seen = new Set<string>();
-  function add(provider: string, model: string, name: string): void {
-    if (typeof provider !== 'string' || typeof model !== 'string') return;
-    const key = provider + '/' + model;
-    if (seen.has(key)) return;
-    seen.add(key);
-    merged.push({ provider, model, name: typeof name === 'string' && name ? name : model });
-  }
-
-  let settings: AnySettings | null = null;
+/** 从运行时 provider 目录读可调用的视觉模型。 */
+async function modelsFromRuntime(llm: LlmService): Promise<CandidateModel[]> {
+  let providers: unknown;
   try {
-    settings = ctx.get('settings') as AnySettings;
+    providers = llm.listProviders();
   } catch {
-    settings = null;
+    return [];
   }
-  if (settings) {
-    for (const ns of ['llm-pi-ai', 'llm-deepseek']) {
+  if (!Array.isArray(providers)) return [];
+
+  const groups = await Promise.all(
+    providers.map(async (provider): Promise<CandidateModel[]> => {
+      if (!isRecord(provider)) return [];
+      const providerId = provider['id'];
+      if (typeof providerId !== 'string' || providerId.length === 0) return [];
+      let models: unknown;
       try {
-        const sec = settings.get(ns) as unknown;
-        for (const c of candidatesFromSection(sec)) add(c.provider, c.model, c.name);
+        models = await llm.listModels(providerId);
       } catch {
-        /* ignore */
+        return [];
       }
-    }
-  }
-
-  let llm: AnyLlm | null = null;
-  try {
-    llm = ctx.get('llm') as AnyLlm;
-  } catch {
-    llm = null;
-  }
-  if (llm && typeof llm.listProviders === 'function') {
-    let providers: unknown[] = [];
-    try {
-      providers = (llm.listProviders() as unknown[] | undefined) ?? [];
-    } catch {
-      providers = [];
-    }
-    if (Array.isArray(providers)) {
-      for (const prov of providers) {
-        const pid = isRecord(prov) && typeof prov['id'] === 'string' ? (prov['id'] as string) : undefined;
-        if (!pid) continue;
-        try {
-          if (typeof llm.listModels !== 'function') continue;
-          const models = (await llm.listModels(pid)) as unknown;
-          if (!Array.isArray(models)) continue;
-          for (const info of models) {
-            if (!isRecord(info)) continue;
-            if (typeof info['id'] !== 'string' || typeof info['provider'] !== 'string') continue;
-            const mods = info['inputModalities'];
-            if (!Array.isArray(mods) || (mods as unknown[]).indexOf('image') < 0) continue;
-            add(
-              info['provider'] as string,
-              info['id'] as string,
-              typeof info['name'] === 'string' ? (info['name'] as string) : (info['id'] as string),
-            );
-          }
-        } catch {
-          /* ignore */
-        }
+      if (!Array.isArray(models)) return [];
+      const out: CandidateModel[] = [];
+      for (const info of models) {
+        if (!isRecord(info)) continue;
+        const id = info['id'];
+        if (typeof id !== 'string' || id.length === 0) continue;
+        const modalities = imageModalities(info);
+        if (!modalities || !modalities.includes('image')) continue;
+        const owner = typeof info['provider'] === 'string' ? info['provider'] : providerId;
+        out.push({ provider: owner, model: id, name: displayName(info['name'], id) });
       }
-    }
-  }
+      return out;
+    }),
+  );
+  return groups.flat();
+}
 
-  merged.sort((a, b) => {
-    if (a.provider < b.provider) return -1;
-    if (a.provider > b.provider) return 1;
-    if (a.model < b.model) return -1;
-    if (a.model > b.model) return 1;
-    return 0;
-  });
-  return merged;
+export async function listVisionModels(ctx: AnyCtx): Promise<CandidateModel[]> {
+  const llm = ctx.get('llm') as LlmService | undefined;
+  if (!llm) return [];
+  const settings = ctx.get('settings') as SettingsService | undefined;
+
+  const merged = new Map<string, CandidateModel>();
+  const add = (model: CandidateModel): void => {
+    const key = model.provider + '\0' + model.model;
+    if (!merged.has(key)) merged.set(key, model);
+  };
+
+  if (settings) for (const model of modelsFromSettings(settings, llm)) add(model);
+  for (const model of await modelsFromRuntime(llm)) add(model);
+
+  const models = [...merged.values()];
+  models.sort((a, b) => compareText(a.provider, b.provider) || compareText(a.model, b.model));
+  return models;
+}
+
+export function sameRoute(a: VisionRoute | null, b: VisionRoute | null): boolean {
+  return a !== null && b !== null && a.provider === b.provider && a.model === b.model;
 }
 
 export interface VisionAttempt {
   text: string;
   route: VisionRoute;
-  fallbackUsed: boolean;
 }
 
+/** 一次视觉模型调用：图片 block + 文本问题，收集文本增量并归一 finish 错误。 */
 async function runOneVision(
-  llm: AnyLlm,
+  llm: LlmService,
   route: VisionRoute,
-  images: ImageRef[],
+  images: readonly ImageRef[],
   question: string,
   signal: AbortSignal | undefined,
   sessionId: string | undefined,
-  nextId: (prefix: string) => string,
 ): Promise<string> {
   const content: unknown[] = [];
-  for (const img of images) content.push({ type: 'image', attachment: img });
+  for (const image of images) content.push({ type: 'image', attachment: image });
   content.push({ type: 'text', text: question });
-  const messages = [
-    {
-      id: nextId('vision-msg'),
-      role: 'user',
-      content,
-      source: { kind: 'user' },
-    },
-  ];
-  const opts: Record<string, unknown> = { provider: route.provider, model: route.model, messages };
-  // 透传会话 ID：opencode 系自 2026-09-06 起强制要求会话头，缺失报 MissingSessionID；非 opencode 忽略
-  if (typeof sessionId === 'string' && sessionId.length > 0) {
-    try {
-      opts['sessionId'] = sessionId;
-    } catch {
-      /* ignore */
-    }
-  }
-  if (signal && typeof signal === 'object' && (signal as AbortSignal).aborted !== true) {
-    try {
-      opts['signal'] = signal;
-    } catch {
-      /* ignore */
-    }
-  }
-  let out = '';
-  let sawDelta = false;
-  const stream = llm.stream(opts) as AsyncIterable<Record<string, unknown>>;
-  for await (const chunk of stream) {
-    if (!chunk || typeof chunk !== 'object') continue;
-    if (chunk['type'] === 'text-delta' && typeof chunk['text'] === 'string') {
-      sawDelta = true;
-      out += chunk['text'] as string;
+
+  const options: Record<string, unknown> = {
+    provider: route.provider,
+    model: route.model,
+    messages: [{ role: 'user', content }],
+  };
+  if (sessionId) options['sessionId'] = sessionId;
+  if (signal) options['signal'] = signal;
+
+  let text = '';
+  const deltaBlocks = new Set<number>();
+  const endBlocks = new Set<number>();
+
+  for await (const chunk of llm.stream(options)) {
+    if (!isRecord(chunk)) continue;
+    const type = chunk['type'];
+    if (type === 'text-delta' && typeof chunk['text'] === 'string') {
+      text += chunk['text'];
+      if (typeof chunk['index'] === 'number') deltaBlocks.add(chunk['index']);
     } else if (
-      chunk['type'] === 'block-end' &&
+      type === 'block-end' &&
       isRecord(chunk['block']) &&
-      chunk['block']['type'] === 'text'
+      chunk['block']['type'] === 'text' &&
+      typeof chunk['block']['text'] === 'string'
     ) {
-      if (!sawDelta && typeof chunk['block']['text'] === 'string') out += chunk['block']['text'] as string;
-    } else if (chunk['type'] === 'finish' && isRecord(chunk['reason'])) {
-      const kind = chunk['reason']['kind'];
-      if (kind === 'error') {
-        const failure = chunk['reason']['failure'];
-        const msg = (
-          isRecord(failure) && typeof failure['message'] === 'string'
-            ? (failure['message'] as string)
-            : '视觉模型调用失败'
-        ).slice(0, 500);
-        throw new Error(String(msg));
+      const index = typeof chunk['index'] === 'number' ? chunk['index'] : -1;
+      if (!deltaBlocks.has(index) && !endBlocks.has(index)) {
+        text += chunk['block']['text'];
+        endBlocks.add(index);
       }
-      if (kind === 'aborted') throw new Error('视觉模型调用被中止');
+    } else if (type === 'finish' && isRecord(chunk['reason'])) {
+      const kind = chunk['reason']['kind'];
+      if (kind === 'error' || kind === 'aborted') {
+        const failure = chunk['reason']['failure'];
+        const message =
+          isRecord(failure) && typeof failure['message'] === 'string'
+            ? failure['message']
+            : kind === 'aborted'
+              ? '视觉模型调用被中止'
+              : '视觉模型调用失败';
+        throw new Error(message.slice(0, 500));
+      }
     }
   }
-  if (out.trim().length === 0) throw new Error('视觉模型返回为空');
-  return out;
+
+  if (signal?.aborted) throw new Error('视觉模型调用被中止');
+  const result = text.trim();
+  if (!result) throw new Error('视觉模型返回为空');
+  return result;
 }
 
+/**
+ * 主模型 → 备用模型依次尝试。
+ *
+ * 没有主模型但有备用模型时，备用模型直接作为首选；两者都没配置时自动用候选列表第一项。
+ * 用户取消（signal.aborted）不触发 fallback。
+ */
 export async function describeWithFallback(
-  ctx: { get: (k: string) => AnyLlm },
+  ctx: AnyCtx,
   cfg: PluginConfig,
-  images: ImageRef[],
+  images: readonly ImageRef[],
   question: string,
   signal: AbortSignal | undefined,
   sessionId: string | undefined,
-  nextId: (prefix: string) => string,
 ): Promise<VisionAttempt> {
-  let llm: AnyLlm | null = null;
-  try {
-    llm = ctx.get('llm') as AnyLlm;
-  } catch {
-    llm = null;
-  }
-  if (!llm || typeof llm.stream !== 'function') throw new Error('当前环境没有可用的 llm 服务');
-  const attempts: Array<{ route: VisionRoute; fallback: boolean }> = [];
-  if (cfg.primary) attempts.push({ route: cfg.primary, fallback: false });
-  if (cfg.fallback && !sameRoute(cfg.fallback, cfg.primary))
-    attempts.push({ route: cfg.fallback, fallback: true });
-  if (attempts.length === 0) {
-    const models = await listVisionModels(ctx as { get: (k: string) => AnySettings | AnyLlm });
-    if (models.length === 0)
+  const llm = ctx.get('llm') as LlmService | undefined;
+  if (!llm) throw new Error('当前环境没有可用的 llm 服务');
+
+  const routes: VisionRoute[] = [];
+  if (cfg.primary) routes.push(cfg.primary);
+  if (cfg.fallback && !sameRoute(cfg.fallback, cfg.primary)) routes.push(cfg.fallback);
+  if (routes.length === 0) {
+    const models = await listVisionModels(ctx);
+    const first = models[0];
+    if (!first) {
       throw new Error(
-        '没有可用的视觉模型：请先在设置 → 视觉模型 中选择（需要在 setting.yml 里给模型加上 input: [text, image]）',
+        '没有可用的视觉模型：请在 设置 → 模型 中为多模态模型勾选 image 输入，或在 设置 → 视觉模型 中选择主模型',
       );
-    const first = models[0] as CandidateModel;
-    attempts.push({ route: { provider: first.provider, model: first.model }, fallback: false });
+    }
+    routes.push({ provider: first.provider, model: first.model });
   }
-  let lastError: unknown = null;
-  for (const a of attempts) {
+
+  let lastError: unknown;
+  for (const route of routes) {
+    if (signal?.aborted) throw new Error('视觉模型调用被中止');
     try {
-      const text = await runOneVision(llm, a.route, images, question, signal, sessionId, nextId);
-      return { text, route: a.route, fallbackUsed: a.fallback };
-    } catch (e) {
-      lastError = e;
+      return { text: await runOneVision(llm, route, images, question, signal, sessionId), route };
+    } catch (error) {
+      lastError = error;
     }
   }
   throw lastError instanceof Error ? lastError : new Error('视觉模型调用失败');
-}
-
-/** buildQuestion(question, detail, promptTemplate)：detail 后缀 + 追加提示词 */
-export function buildQuestion(base: string, detail: Detail, promptTemplate: string): string {
-  let q = (typeof base === 'string' ? base : '').trim();
-  if (!q) q = '请描述这张图片的内容。';
-  let suffix = '';
-  if (detail === 'high')
-    suffix = '\n\n请尽可能详细：主体、文字、数字、颜色、位置关系都不要遗漏。如有文字请逐字转录。';
-  else if (detail === 'low') suffix = '\n\n请用 2-3 句话简要概括。';
-  const extra =
-    typeof promptTemplate === 'string' && promptTemplate.trim().length > 0
-      ? '\n\n补充要求：' + promptTemplate.trim().slice(0, 500)
-      : '';
-  return q + suffix + extra;
 }

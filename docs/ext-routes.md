@@ -6,9 +6,9 @@
 
 - 路由三件套按需提供：`GET state`（状态+配置快照）/ `POST config`（保存补丁）/ `GET check`（探活）。kind 一律 `'exact'`，逐个 `ctx.effect` 注册。
 - 每个 handler 第一行 `if (!sameOrigin(req)) return json(res, 403, ...)`。`sameOrigin`/`json`/`readBody` 从自有 `http.ts` 导入（各插件独立持有，不跨包 import）。
-- `json()` 必须带 `cache-control: no-store`；`readBody` 默认 1MB 上限，超限 `payload-too-large` 并销毁流。
-- `POST config` 流程：`readBody` → `JSON.parse` 失败回 `{ ok:false, error:'请求体不是合法 JSON' }` → `Object.hasOwn` 逐字段校验（非法抛中文 Error 如 `'maxImages 非法，应为 1-8 的数字'`）→ 有补丁才 `settings.update` → 回 `{ ok:true, config: snapshotConfig() }`。**业务错误走 200 + `ok:false`**（前端 `fetchState` 按 `ok` 分支），只把跨站/方法错误走 4xx。
-- 字符串截断：provider 120 / model 200 / 模板 2000 / 错误信息 300–500。数字 `Math.floor` 后夹范围。
+- `json()` 必须带 `cache-control: no-store`；`readBody` 默认 64KB 上限（配置类 body 足够，需要大 body 的插件自行调大），超限 `payload-too-large` 并销毁流。
+- `POST config` 流程：`readBody` → `JSON.parse` 失败回 `{ ok:false, error:'请求体不是合法 JSON' }` → `Object.hasOwn` 逐字段校验（非法抛中文 Error 如 `'primary 非法，应为 {provider, model} 或 null'`；未知字段直接拒绝）→ 有补丁才 `settings.update` → 回 `{ ok:true, config: snapshotConfig() }`。**业务错误走 200 + `ok:false`**（前端 `fetchState` 按 `ok` 分支），只把跨站/方法错误走 4xx。
+- 字符串截断：provider 120 / model 200 / 错误信息 300–500。数字 `Math.floor` 后夹范围。
 
 ## 为什么设置节不走客户端 `settingsScope`
 

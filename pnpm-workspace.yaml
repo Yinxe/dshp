@@ -8,10 +8,10 @@ autoInstallPeers: true
 strictPeerDependencies: false
 minimumReleaseAgeExclude:
   - '@deepseek-ai/cosmokit@1.8.5'
-  - '@deepseek-ai/dsh-client-ui-primitives@0.2.0-rc.2'
+  - '@deepseek-ai/dsh-client-ui-primitives@0.2.1-rc.2'
   - '@deepseek-ai/schemastery@3.18.4'
-# ui-primitives 0.2.0-rc.2 的 cordis peer 是 ~4.0.4；autoInstallPeers 装出来的裸 peer
-# 不会随上游范围自动抬版（旧锁里钉的是 4.0.2），必须显式对齐，否则 peers check 长红。
+# ui-primitives 0.2.1-rc.2 的 cordis peer 是 ~4.0.5；autoInstallPeers 装出来的裸 peer
+# 不会随上游范围自动抬版，必须显式对齐，否则 peers check 长红。
 # 只影响本仓类型检查 / 构建：client bundle 把 primitives 留 external，运行时由 DSH 注入。
 overrides:
-  '@deepseek-ai/cordis': 4.0.4
+  '@deepseek-ai/cordis': 4.0.5

@@ -57,11 +57,11 @@ window.__ModuleLoader__.load({
 
 ## Section 组件状态机
 
-`useState` 五件套（models/config/loading/saving/error）+ `useEffect` 初次 `load()`。必须覆盖四态：loading（Icon + 「正在读取…」）/ error（红字 notice）/ 空列表（warn notice + setting.yml 改法指引）/ 正常表单。
+`useState` 五件套（models/config/loading/saving/error）+ `useEffect` 初次 `load()`。必须覆盖四态：loading（Icon + 「正在读取…」）/ error（红字 notice）/ 空列表（warn notice + 「设置 → 模型 勾选 image 输入」指引）/ 正常表单。
 
-- 下拉用 `components.ts` 的 `Select`（胶囊官方 `Menu`），开关用 `Switch`，状态用 `Badge(kind: ok/warn/muted/info)`。新插件缺构件先看 primitives 有没有，没有才在 `components.ts` 加。
-- 保存：即时项直接 `save(patch)`；长文本（textarea）`onChange` 只改本地、`onBlur` 才保存（标杆 promptTemplate 写法）。保存中 `disabled`，失败回 error notice 不丢本地值。
-- `api.ts` 三函数形态照抄：`fetchState`（`cache: no-store`）/ `saveConfig`（POST json）/ `checkConnectivity`。BASE 常量 `/ext/dshp-<name>` 与 host 对齐，类型从 `client/types.ts` 来。
+- 开关、状态标签、按钮直接用官方 `Switch` / `Tag` / `Button`；只有官方没有的「标题 + 说明 + 右侧控件」行版式和下拉锚点留在 `components.tsx`（`Row` + `Select`）。新插件缺构件先看 primitives 有没有，没有才在 `components.tsx` 加。
+- 保存：即时项直接 `save(patch)`；如遇长文本，`onChange` 只改本地、`onBlur` 才保存。保存中 `disabled`，失败回 error notice 不丢本地值。
+- `api.ts` 三函数形态照抄：`fetchState`（`cache: no-store`）/ `saveConfig`（POST json）/ `checkRoutes`。BASE 常量 `/ext/dshp-<name>` 与 host 对齐，类型从 `client/types.ts` 来。
 
 ## keyed 槽位与影子化（接管已有渲染时）
 

@@ -19,12 +19,10 @@ export const ConfigSchema: any = z.object({
     .union([VisionRouteSchema, z.const(null)])
     .default(null)
     .volatile(),
-  detail: z
-    .union([z.const('auto'), z.const('low'), z.const('high')])
-    .default('auto')
+  fallback: z
+    .union([VisionRouteSchema, z.const(null)])
+    .default(null)
     .volatile(),
-  maxImages: z.number().step(1).min(1).max(8).default(4).volatile(),
-  promptTemplate: z.string().default('').volatile(),
 });
 ```
 
@@ -46,8 +44,10 @@ export function apply(ctx: AnyCtx, config: VolatileConfig): void {
 ```
 
 - 每个字段都要 `.default(...)`；约束进 schema（`min/max/step`、enum 用 `z.const` 联合），不要只在路由里判——设置页表单和手工编辑条目 `config:` 都走同一 schema。
+- 只放用户真的会改的字段：vision-bridge 只留 `enabled` / `primary` / `fallback`；图片提示词由主模型按上下文生成，单次图片数固定 4 张。
 - **volatile 引用类型建模**：types.ts 里配置视图写成 `{ x: Volatile<T> }`（`import type { Volatile } from '@deepseek-ai/cosmokit'`）；`.get()` 返回深只读快照，业务读路径按快照消费。数组/嵌套对象字段整体 `.volatile()` 即可，**嵌套 volatile 禁止**。
 - **非法配置 = 整个条目不装载**（行为变化）：装载期校验失败即拒绝启用该条目并给中文报错，不再有旧版「逐字段回退默认」的 `sanitizePatchConfig` 主链路。读路径只保留 schema 证明不了的防御（别名归一、跨字段夹取等）。
+- **0.2.x 读配置**：`settings.get(ns)` 已移除。需要读其他插件命名空间（如 vision-bridge 发现视觉模型）时用 `settings.describe({ redactSecrets: true })`，按 `ns` 找 descriptor，再按 `llm.listConfigurableProviders()` 的 `settingsPath` 定位 provider profile；不要硬编码 `llm-pi-ai` / `llm-deepseek`。
 - **热更新走 `loader/volatile-update`**：`settings.update` 提交后 loader 把新值原地写进 volatile 引用并在本插件 fiber 派发该事件；开关承重逻辑（注册/反注册工具、重绑提供方）监听它重新判定，**不重启即生效**。旧 `setSource` / `onChange` / `settings.get(NS)` 权威读技巧全部作废。
 - 写入统一 `await settings.update(NS, patch)`（签名兼容，revision 第三参本地单用户可不传）；model-tool 写路径要容忍并如实上报 `SettingsConflictError`（code `SETTINGS_CONFLICT`）。
 - **固定不变的东西不进 settings**：外部端点、版本号、魔法数字一律写死为具名常量（如 mcwiki-search 的 `API_BASE = 'https://zh.minecraft.wiki/api.php'`，注释写「不可配置，换站改这里重 build」）。settings 只放用户真的会改的东西——每多一个配置项，就是多一份文档、多一个设置页控件、多一处校验。
