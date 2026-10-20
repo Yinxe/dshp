@@ -1,7 +1,7 @@
 {
   "name": "@dshp/search-provider",
-  "version": "0.5.0",
-  "description": "DeepSeek Harness (DSH) AI search provider hub: take over web_search with pluggable providers (Tavily first), with per-provider key management, search behavior, usage quota and connectivity test in one settings page. 搜索供应商集线器：以可插拔供应商（默认 Tavily）接管 web_search，各供应商的密钥管理、搜索行为、用量额度与连通性测试集中在同一设置页。",
+  "version": "1.0.0",
+  "description": "DeepSeek Harness (DSH) AI search hub: take over web_search with Tavily, Exa, or Firecrawl (two free AI search backends), with key management, behavior settings and a connectivity test in one settings page. AI 搜索中枢：用 Tavily / Exa / Firecrawl 接管 web_search，密钥、搜索行为与连通性测试集中在一个设置页。",
   "license": "MIT",
   "author": "Yinxe",
   "type": "module",
@@ -24,7 +24,9 @@
     "web-search",
     "search-provider",
     "tavily",
-    "search"
+    "exa",
+    "firecrawl",
+    "ai-search"
   ],
   "engines": {
     "node": ">=20"
@@ -41,12 +43,12 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Yinxe/deepseek-harness-plugins.git",
-    "directory": "archive/search-provider"
+    "directory": "plugins/search-provider"
   },
   "bugs": {
     "url": "https://github.com/Yinxe/deepseek-harness-plugins/issues"
   },
-  "homepage": "https://github.com/Yinxe/deepseek-harness-plugins/tree/main/archive/search-provider#readme",
+  "homepage": "https://github.com/Yinxe/deepseek-harness-plugins/tree/main/plugins/search-provider#readme",
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -61,7 +63,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/cosmokit": "~1.8.5",
-    "@deepseek-ai/dsh-client-ui-primitives": "0.2.0-rc.2",
+    "@deepseek-ai/dsh-client-ui-primitives": "0.2.1-rc.2",
     "@deepseek-ai/schemastery": "^3.18.4",
     "@types/react": "~18.3.1",
     "react": "^18.3.1",

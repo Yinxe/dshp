@@ -16,14 +16,14 @@
 
 ## 各插件现有路由一览
 
-> 下表含已归档插件（`archive/`）的历史路由，仅作参考；维护中的只有 `vision-bridge`。
+> 下表含已归档插件（`archive/`）的历史路由，仅作参考；维护中的是 `vision-bridge` 与 `search-provider`。
 
 | 插件               | 路由（前缀 `/ext/dshp-<name>`）                                                                                                                                               |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | vision-bridge      | `GET state` / `POST config` / `GET check`                                                                                                                                     |
 | mcwiki-search      | `GET state` / `POST config` / `POST test`（连接测试）                                                                                                                         |
 | token-meter        | `GET state` / `GET stats`（别名 `/data`）+ quota 侧 `refresh / set-active / set-refresh / set-enabled / set-vendor-enabled / add / update / delete / secret-to-cred / config` |
-| search-provider    | `GET state` / `POST config` / 连接测试（供应商路由由 provider 模块自带）                                                                                                      |
+| search-provider    | `GET state` / `POST config` / `POST test`（真实调用一次搜索）                                                                                                                 |
 | web-style          | `GET state` / `GET themes`（全量 token 目录）/ `POST theme` / `POST config`                                                                                                   |
 | skill-manager      | `GET state` / `GET read` / `POST config / create / update / toggle / remove / transfer`                                                                                       |
 | mcp-manager        | `GET state` / `POST config / create / update / toggle / remove / probe`                                                                                                       |

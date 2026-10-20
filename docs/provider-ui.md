@@ -1,6 +1,6 @@
 # provider 型插件：两套模板与失败提示
 
-> 本文承接旧 AGENT.md §10.3–10.4（多供应商分层渲染 / 失败提示结构化）的完整细节，标杆 `archive/token-meter`（已归档，仅作历史参考；同类的 `archive/search-provider` 亦然）。规则版总纲见[仓库根 AGENT.md](../AGENT.md)。
+> 本文承接旧 AGENT.md §10.3–10.4（多供应商分层渲染 / 失败提示结构化）的完整细节，标杆 `plugins/search-provider`（维护中；`archive/token-meter` 已归档，仅作历史参考）。规则版总纲见[仓库根 AGENT.md](../AGENT.md)。
 
 ## 什么时候读这篇
 
@@ -156,7 +156,7 @@ Host 适配器可声明 `icon`（`describeProviders()` 下发 `ProviderMeta.icon
 
 ## search-provider 的变体
 
-search-provider 是同一思想的搜索版：`host/providers/<id>.ts` 实现 `SearchProviderModule`（注册进 `ctx.web` 的 WebSearchProvider），样板（路由/消毒/错误抽取）由 `providers/base.ts` 提供。API Key 每次操作经 credentials 服务实时解析（如 `TAVILY_API_KEY`），不在提供方上滞留、不进条目 config。
+search-provider 是同一思想的搜索版：只向 `ctx.web` 注册一个稳定的 hub provider `dshp-search`，`host/providers/<id>.ts` 实现 `SearchProviderModule`，由 hub 在 `search()` 里按 settings 的 `provider` 分派到 Tavily / Exa / Firecrawl。样板（HTTP JSON、错误抽取、来源归一）由 `providers/base.ts` 提供；设置页控件由 `fields[]` 元数据驱动。API Key 每次操作经 credentials 服务实时解析（如 `TAVILY_API_KEY`），不在提供方上滞留、不进条目 config。
 
 ## 失败提示必须结构化、可操作
 

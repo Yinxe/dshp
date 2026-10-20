@@ -1,9 +1,9 @@
 # AGENT.md — dsh 插件 monorepo 开发规范（规则版）
 
 > 仓库：`deepseek-harness-plugins`（pnpm workspaces + TypeScript ESM）。
-> 2026-10-20 起只维护 `plugins/vision-bridge`；`archive/` 下的插件已冻结，不参与构建 / 测试 / 发布，不得在其中新增功能或适配新版 DSH。
+> 2026-10-20 起维护 `plugins/vision-bridge` 与 `plugins/search-provider`；其余 `archive/` 下的插件已冻结，不参与构建 / 测试 / 发布，不得在其中新增功能或适配新版 DSH。
 > 本文只留**必须背下来的规则**与打回清单；每条规则的「为什么、怎么抄、逐字段表格」下沉在 [docs/](docs/) 各主题文档里，按需再读。
-> 有疑问时的阅读顺序：本文 → `docs/` 对应主题 → 标杆源码 `plugins/vision-bridge`（唯一维护中的标杆实现；provider 型与接管工具行的历史参考分别在 `archive/token-meter`、`archive/file-change-viewer`，只读、不再维护）。
+> 有疑问时的阅读顺序：本文 → `docs/` 对应主题 → 标杆源码 `plugins/vision-bridge`（设置页 / 工具）与 `plugins/search-provider`（provider 型）；接管工具行的历史参考在 `archive/file-change-viewer`，只读、不再维护。
 > 各插件自己的局部规则在 `plugins/<name>/AGENT.md`（维护中）或 `archive/<name>/AGENT.md`（归档，NS、槽位占位、路由面、自检脚本、特殊边界）。
 > **小组件契约见 [`docs/widget-spec.md`](docs/widget-spec.md)**，但其宿主 `@dshp/widget-kit` 已归档冻结，新插件不再接入。
 

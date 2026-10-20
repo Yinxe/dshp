@@ -235,6 +235,27 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  plugins/search-provider:
+    devDependencies:
+      '@deepseek-ai/cosmokit':
+        specifier: ~1.8.5
+        version: 1.8.6
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: 0.2.1-rc.2
+        version: 0.2.1-rc.2(@deepseek-ai/cordis@4.0.5)
+      '@deepseek-ai/schemastery':
+        specifier: ^3.18.4
+        version: 3.18.4
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      tsup:
+        specifier: ^8.5.1
+        version: 8.5.1(tsx@4.23.13)(typescript@7.0.2)
+
   plugins/vision-bridge:
     devDependencies:
       '@deepseek-ai/cosmokit':
@@ -1351,7 +1372,7 @@ snapshots:
 
   '@deepseek-ai/schemastery@3.18.4':
     dependencies:
-      '@deepseek-ai/cosmokit': 1.8.5
+      '@deepseek-ai/cosmokit': 1.8.6
       '@standard-schema/spec': 1.1.0
 
   '@esbuild/aix-ppc64@0.27.7':

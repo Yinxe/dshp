@@ -1,0 +1,13 @@
+# @dshp/search-provider bundle patch: AI search hub for DeepSeek Harness.
+# Host half: one stable web search provider `dshp-search` dispatching to Tavily / Exa / Firecrawl.
+# Client half: Settings page section for backend, API key, behavior and connectivity test.
+
+# Select this hub as the web search provider. A profile patch may override it;
+# the settings page reports a hint when web.searchProvider points elsewhere.
+- id: web
+  config:
+    searchProvider: dshp-search
+
+- insert:
+    - id: dshp-search-provider
+      name: '@dshp/search-provider'

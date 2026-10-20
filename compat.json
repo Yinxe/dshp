@@ -1,6 +1,6 @@
 {
   "repo": "Yinxe/deepseek-harness-plugins",
-  "policy": "main 只维护 @dshp/vision-bridge（2026-10-20 起其余插件归档到 archive/ 并冻结，不再跟随 DSH）；main 永远跟最新 DSH，历史 tag 只在 DSH 上游发新版 breaking 时回头打，给老 DSH 用户 checkout。空矩阵 = 暂无历史包袱。",
+  "policy": "main 维护 @dshp/vision-bridge 与 @dshp/search-provider（2026-10-20 起其余插件归档到 archive/ 并冻结，不再跟随 DSH）；main 永远跟最新 DSH，历史 tag 只在 DSH 上游发新版 breaking 时回头打，给老 DSH 用户 checkout。",
   "archived": "2026-10-20：除 @dshp/vision-bridge 外的插件移入 archive/，冻结在归档时版本；历史 tag 仍包含当时的全部插件，checkout 后路径仍是 plugins/<name>。",
   "compat": [
     {
@@ -21,7 +21,7 @@
     {
       "dsh": "0.2.1-rc.2",
       "tag": "v0.2.1-rc.2",
-      "note": "适配 0.2.1-rc.2：模型发现改走 settings.describe() + llm.listConfigurableProviders()，Agent 只读 id；ui-primitives 0.2.1-rc.2 / cordis 4.0.5。插件 2.0.0 把配置收成 enabled/primary/fallback 三个字段，图片提示词由主模型按上下文生成，单次图片数固定 4 张。"
+      "note": "适配 0.2.1-rc.2：vision-bridge 2.0.0 改用 settings.describe() + llm.listConfigurableProviders()，配置收成 enabled/primary/fallback，图片提示词由主模型生成；search-provider 1.0.0 恢复维护，注册 dshp-search hub，后端 Tavily / Exa / Firecrawl（两个免费 AI 搜索）。ui-primitives 0.2.1-rc.2 / cordis 4.0.5。"
     }
   ]
 }

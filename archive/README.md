@@ -1,6 +1,6 @@
 # 归档插件（冻结，不再维护）
 
-2026-10-20 起，本仓库只维护 [`@dshp/vision-bridge`](../plugins/vision-bridge/README.md)。其余插件整体移入本目录，**冻结在归档时的版本**：
+2026-10-20 起，本仓库维护 [`@dshp/vision-bridge`](../plugins/vision-bridge/README.md) 与 [`@dshp/search-provider`](../plugins/search-provider/README.md)（后者已从归档恢复）。其余插件整体移入本目录，**冻结在归档时的版本**：
 
 - 不再适配新版 DSH，不再接受功能更新 / 修 bug；
 - 不参与 pnpm workspace、`pnpm check`、CI 打包与 Release；
@@ -13,7 +13,6 @@
 | [@dshp/token-meter](token-meter/README.md)                   | 0.15.0 | Token 额度 + 用量统计 + 在线时长（多供应商额度 + 会话日志聚合）     |
 | [@dshp/file-change-viewer](file-change-viewer/README.md)     | 0.4.0  | edit / write 行的高亮差异视图 + `patch` 工具                         |
 | [@dshp/mcwiki-search](mcwiki-search/README.md)               | 1.6.0  | Minecraft Wiki 查询（搜索 / 引言 / 全文，清洗成 AI 可读文本）        |
-| [@dshp/search-provider](search-provider/README.md)           | 0.5.0  | `web_search` 供应商中枢（Tavily 等可插拔接入）                       |
 | [@dshp/web-style](web-style/README.md)                       | 0.5.0  | Web 外观定制（8 套主题 + 背景效果 + 壁纸取色 + 全局圆角）            |
 | [@dshp/skill-manager](skill-manager/README.md)               | 0.4.0  | 技能管理（全局 + 工作区技能的新建 / 编辑 / 启停 / 复制移动 / 删除）  |
 | [@dshp/mcp-manager](mcp-manager/README.md)                   | 0.4.0  | MCP 服务器管理（patch 条目 CRUD + 探活，表单 / JSON 双模式）         |
@@ -38,4 +37,4 @@ dsh web   # 重启生效
 
 ## 为什么归档
 
-集中维护视觉桥接，避免为不再使用的插件持续跟进 DSH 的 breaking 变更；历史实现仍有参考价值（provider 分层、工具行接管、主题 token、小组件契约），因此保留源码而不是删除。相关规范的「标杆」表述已在根 `AGENT.md` 与 `docs/` 中标注归档状态。
+集中维护视觉桥接与 AI 搜索，避免为不再使用的插件持续跟进 DSH 的 breaking 变更；历史实现仍有参考价值（provider 分层、工具行接管、主题 token、小组件契约），因此保留源码而不是删除。相关规范的「标杆」表述已在根 `AGENT.md` 与 `docs/` 中标注归档状态。

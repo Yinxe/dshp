@@ -2,7 +2,7 @@
 
 DeepSeek Harness（DSH）插件 Monorepo（pnpm workspaces + TypeScript ESM）。
 
-> **当前只维护 `@dshp/vision-bridge`。** 2026-10-20 起其余插件已归档到 [`archive/`](archive/README.md)，冻结在归档时的版本，不再适配新版 DSH，也不参与构建、测试与发布。
+> **当前维护 `@dshp/vision-bridge` 与 `@dshp/search-provider`。** 2026-10-20 起其余插件已归档到 [`archive/`](archive/README.md)，冻结在归档时的版本，不再适配新版 DSH，也不参与构建、测试与发布。
 
 > **运行时零依赖 · 构建产物已提交**：插件 `dependencies` 恒为 `{}`，`lib/host.js` / `lib/client.js` 随仓库提交 —— clone 下来即可直接安装，无需先 build。
 
@@ -10,9 +10,10 @@ DeepSeek Harness（DSH）插件 Monorepo（pnpm workspaces + TypeScript ESM）�
 
 **维护中：**
 
-| 插件                                                       | 一句话                                                                         | 文档                                      |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------------- |
-| **[@dshp/vision-bridge](plugins/vision-bridge/README.md)** | 视觉桥接：让纯文本模型也能“看图”（`vision_describe` 工具 + 主/备模型自动降级） | [README](plugins/vision-bridge/README.md) |
+| 插件                                                           | 一句话                                                                         | 文档                                        |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------- |
+| **[@dshp/vision-bridge](plugins/vision-bridge/README.md)**     | 视觉桥接：让纯文本模型也能“看图”（`vision_describe` 工具 + 主/备模型自动降级） | [README](plugins/vision-bridge/README.md)   |
+| **[@dshp/search-provider](plugins/search-provider/README.md)** | AI 搜索中枢：用 Tavily / Exa / Firecrawl 接管 `web_search`（含两个免费后端）   | [README](plugins/search-provider/README.md) |
 
 **已归档（冻结，不再维护）：**
 
@@ -21,7 +22,6 @@ DeepSeek Harness（DSH）插件 Monorepo（pnpm workspaces + TypeScript ESM）�
 | [@dshp/token-meter](archive/token-meter/README.md)               | 0.15.0 | Token 额度 + 用量统计 + 在线时长（多供应商额度 + 会话日志聚合）     | [`archive/token-meter`](archive/token-meter/)               |
 | [@dshp/file-change-viewer](archive/file-change-viewer/README.md) | 0.4.0  | edit / write 行的高亮差异视图 + `patch` 工具                        | [`archive/file-change-viewer`](archive/file-change-viewer/) |
 | [@dshp/mcwiki-search](archive/mcwiki-search/README.md)           | 1.6.0  | Minecraft Wiki 查询（搜索 / 引言 / 全文，清洗成 AI 可读文本）       | [`archive/mcwiki-search`](archive/mcwiki-search/)           |
-| [@dshp/search-provider](archive/search-provider/README.md)       | 0.5.0  | `web_search` 供应商中枢（Tavily 等可插拔接入）                      | [`archive/search-provider`](archive/search-provider/)       |
 | [@dshp/web-style](archive/web-style/README.md)                   | 0.5.0  | Web 外观定制（8 套主题 + 背景效果 + 壁纸取色 + 全局圆角）           | [`archive/web-style`](archive/web-style/)                   |
 | [@dshp/skill-manager](archive/skill-manager/README.md)           | 0.4.0  | 技能管理（全局 + 工作区技能的新建 / 编辑 / 启停 / 复制移动 / 删除） | [`archive/skill-manager`](archive/skill-manager/)           |
 | [@dshp/mcp-manager](archive/mcp-manager/README.md)               | 0.4.0  | MCP 服务器管理（patch 条目 CRUD + 探活，表单 / JSON 双模式）        | [`archive/mcp-manager`](archive/mcp-manager/)               |
@@ -165,16 +165,20 @@ dsh web   # 重启生效
 ```
 .
 ├── plugins/
-│   └── vision-bridge/          # @dshp/vision-bridge（视觉桥接，唯一维护中）
-│       ├── src/host/           #   Host TS：types/http/config/cache/vision/index
-│       ├── src/client/         #   Client TS：types/styles/api/components/VisionSection/index
+│   ├── vision-bridge/          # @dshp/vision-bridge（视觉桥接，维护中）
+│   │   ├── src/host/           #   Host TS：types/http/config/cache/vision/index
+│   │   ├── src/client/         #   Client TS：types/styles/api/components/VisionSection/index
+│   │   ├── lib/                #   单文件构建产物（已提交，DSH git 安装必需）
+│   │   └── cordis.patch.yml    #   bundle 声明（id: dshp-vision-bridge）
+│   └── search-provider/        # @dshp/search-provider（AI 搜索，维护中）
+│       ├── src/host/           #   Host TS：types/http/config/providers/index
+│       ├── src/client/         #   Client TS：types/styles/api/components/SearchSection/index
 │       ├── lib/                #   单文件构建产物（已提交，DSH git 安装必需）
-│       └── cordis.patch.yml    #   bundle 声明（id: dshp-vision-bridge）
+│       └── cordis.patch.yml    #   bundle 声明（id: dshp-search-provider）
 ├── archive/                    # 冻结的历史插件（源码 + lib + 文档，不参与构建 / 发布）
 │   ├── token-meter/            # @dshp/token-meter 0.15.0
 │   ├── file-change-viewer/     # @dshp/file-change-viewer 0.4.0
 │   ├── mcwiki-search/          # @dshp/mcwiki-search 1.6.0
-│   ├── search-provider/        # @dshp/search-provider 0.5.0
 │   ├── web-style/              # @dshp/web-style 0.5.0
 │   ├── skill-manager/          # @dshp/skill-manager 0.4.0
 │   ├── mcp-manager/            # @dshp/mcp-manager 0.4.0

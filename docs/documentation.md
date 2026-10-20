@@ -18,7 +18,7 @@
 ## 免责声明
 ````
 
-- 安装四步固定文案：`git clone … && pnpm install` → `dsh plugin --profile web add ./plugins/<name>` → `dsh web`；注明「lib/ 已提交，无需 build」与「唯一方式：本地装，不能 `pnpm add`」。Release / git 依赖两种备选方式与历史版本（compat.json）也在此节，文案与 vision-bridge README 对齐。
+- 安装四步固定文案：`git clone … && pnpm install` → `dsh plugin --profile web add ./plugins/<name>` → `dsh web`；注明「lib/ 已提交，无需 build」与「唯一方式：本地装，不能 `pnpm add`」。Release / git 依赖两种备选方式与历史版本（compat.json）也在此节，文案与 vision-bridge / search-provider README 对齐。
 - 移植说明（原 JS 仓库 → TS 文件的逐文件对应、构建命令）**放文末**，不要占开头位置。
 - 一键 AI 安装话术块给 ```text 代码块，写清子目录名与包名，便于直接粘给 DSH AI。
 

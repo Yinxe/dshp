@@ -77,6 +77,6 @@ client 侧的起步三件（照 vision-bridge 抄）：`src/client/index.tsx`（
 
 ## 标杆与阅读顺序
 
-- 唯一标杆实现：`plugins/vision-bridge`（`@dshp/vision-bridge`）。**新插件有疑问时先读它，再读规范。**
+- 标杆实现：`plugins/vision-bridge`（设置页 / 工具）与 `plugins/search-provider`（provider 型）。**新插件有疑问时先读它们，再读规范。**
 - 阅读顺序：根 `AGENT.md` → 根 `README.md` → `plugins/vision-bridge/README.md` → `plugins/vision-bridge/src/host/*.ts` → `src/client/*`（组件是 `.tsx`）→ `tsup.config.ts`。
 - provider 型插件（多供应商分层）的第二标杆：`archive/token-meter`（已归档）；接管工具行渲染的标杆：`archive/file-change-viewer`（已归档）。两者只读，不再适配新版 DSH。
