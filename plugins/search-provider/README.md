@@ -44,13 +44,16 @@ dsh web
 
 ### 选型（默认已接管）
 
-插件的 bundle patch 会把 `web.searchProvider` 设为 `dshp-search`：
+插件的 bundle patch 会把 `web.searchProvider` 设为 `dshp-search`，并保留 base 的 `fetchProvider: http`：
 
 ```yaml
 - id: web
   config:
     searchProvider: dshp-search
+    fetchProvider: http
 ```
+
+> `web` 的 patch 会**整体覆盖**该条 config，不会和 base 深合并。手写 `web` 覆盖行时也必须同时写 `fetchProvider`（默认 `http`），否则 `deepseek-fetch-api` 与 `http` 会同时可用，`web_fetch` 报 `multiple usable web providers are registered`。
 
 profile 里若有更具体的 `web` 覆盖行，会以 profile 为准；设置页顶部会提示当前 `web.searchProvider` 与 `dshp-search` 是否一致。想恢复官方搜索：删除该覆盖行并重启。
 

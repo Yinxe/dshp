@@ -2,11 +2,16 @@
 # Host half: one stable web search provider `dshp-search` dispatching to Tavily / Exa / Firecrawl.
 # Client half: Settings page section for backend, API key, behavior and connectivity test.
 
-# Select this hub as the web search provider. A profile patch may override it;
-# the settings page reports a hint when web.searchProvider points elsewhere.
+# Select this hub as the web search provider.
+#
+# The patch overrides the whole `web` config object, so `fetchProvider` must be
+# restated here as well: dropping it leaves both `deepseek-fetch-api` and `http`
+# registered and the next web_fetch fails with WEB_PROVIDER_AMBIGUOUS.
+# A profile-level `web` override still wins; if you write one, keep both fields.
 - id: web
   config:
     searchProvider: dshp-search
+    fetchProvider: http
 
 - insert:
     - id: dshp-search-provider

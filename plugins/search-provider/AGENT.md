@@ -22,7 +22,7 @@
 ## 本插件的局部规则
 
 1. **只注册一个 hub provider `dshp-search`**：后端在 `search()` 里按 settings 的 `provider` 分派。禁止为每个后端注册不同 id——base 已有 `deepseek-official`，多 id 会触发 `WEB_PROVIDER_AMBIGUOUS`；也禁止动态解绑/重绑。
-2. **选型由 bundle patch 设置**：`cordis.patch.yml` 的 `- id: web` 把 `searchProvider` 设为 `dshp-search`；profile 覆盖时 state 路由给出中文提示。不要从插件里偷偷改 `web` 配置。
+2. **选型由 bundle patch 设置**：`cordis.patch.yml` 的 `- id: web` 把 `searchProvider` 设为 `dshp-search`，并**必须同时保留 `fetchProvider: http`**——`web` 的 patch 是整体覆盖而非深合并，漏掉会让 `deepseek-fetch-api` 与 `http` 同时可用，`web_fetch` 报 `WEB_PROVIDER_AMBIGUOUS`。profile 覆盖时 state 路由给出中文提示。不要从插件里偷偷改 `web` 配置。
 3. **密钥只走 credentials**：`TAVILY_API_KEY` / `EXA_API_KEY` / `FIRECRAWL_API_KEY`，每次搜索 `resolveKey()` 现取；不进条目 config、不回显、不写用户文件。Firecrawl 允许无 Key。
 4. **后端模块契约**：`id` / `label` / `title` / `credentialRef` / `credentialRequired` / `homepage` / `description` / `freeNote` / `fields` / `defaultConfig` / `configSchema?` / `sanitizePatch` / `snapshot` / `search`。新增后端 = `providers/<id>.ts` + `providers/index.ts` 一行；有字段才给 `configSchema`，无字段不产生空分节。
 5. **API 字段消毒**：只取契约字段；`sourceOf` 校验 url、截断 snippet 1200；非 2xx 用 `extractApiDetail` 取供应商 detail，保留 HTTP 状态。
